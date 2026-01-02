@@ -10,18 +10,18 @@ from utils.signals import Comunicador
 from gui.widgets import WidgetAppInstalada
 from core.managers.deb import DebManager
 from core.managers.appimage import AppImageManager
+from utils.helpers import cargar_traducciones
 
 class InstaladorPro(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("SuperInstall v3.0 - Modular")
+        
+        self.lang = cargar_traducciones()
+        self.setWindowTitle(self.lang.get("window_title", "SuperInstall v3.0"))
         self.setFixedSize(450, 620)
         self.setAcceptDrops(True)
         
-        # 1. Cargamos estilos externos
         self.cargar_estilos()
-
-        # 2. Inicializamos mensajería y managers
         self.comunicador = Comunicador()
         self.mgr_deb = DebManager(self.comunicador)
         self.mgr_appimage = AppImageManager(self.comunicador)
@@ -37,7 +37,6 @@ class InstaladorPro(QMainWindow):
         self.manager_actual = None
 
     def setup_ui(self):
-        """Configuración de la interfaz de usuario"""
         self.stack_widget = QWidget()
         self.setCentralWidget(self.stack_widget)
         self.layout_stack = QVBoxLayout(self.stack_widget)
@@ -68,11 +67,11 @@ class InstaladorPro(QMainWindow):
         ly_ico.addWidget(self.label_icono)
         self.layout_principal.addWidget(self.contenedor_icono, alignment=Qt.AlignCenter)
 
-        self.label_nombre = QLabel("Bienvenido")
+        self.label_nombre = QLabel(self.lang.get("welcome_msg", "Welcome"))
         self.label_nombre.setObjectName("label_nombre")
         self.layout_principal.addWidget(self.label_nombre, alignment=Qt.AlignCenter)
 
-        self.label_version = QLabel("Arrastra un .deb o .AppImage")
+        self.label_version = QLabel(self.lang.get("drag_drop_info", "Drag a .deb or .AppImage"))
         self.label_version.setObjectName("label_version")
         self.label_version.setAlignment(Qt.AlignCenter)
         self.layout_principal.addWidget(self.label_version, alignment=Qt.AlignCenter)
@@ -84,20 +83,20 @@ class InstaladorPro(QMainWindow):
         self.barra_progreso.hide()
         self.layout_principal.addWidget(self.barra_progreso)
 
-        self.btn_abrir = QPushButton("Seleccionar archivo")
+        self.btn_abrir = QPushButton(self.lang.get("btn_select", "Select file"))
         self.btn_abrir.setObjectName("btn_abrir")
         self.btn_abrir.setFixedHeight(44)
         self.btn_abrir.clicked.connect(self.seleccionar_archivo)
         self.layout_principal.addWidget(self.btn_abrir, alignment=Qt.AlignCenter)
 
-        self.btn_instalar = QPushButton("Instalar Ahora")
+        self.btn_instalar = QPushButton(self.lang.get("btn_install", "Install Now"))
         self.btn_instalar.setObjectName("btn_instalar")
         self.btn_instalar.setFixedHeight(44)
         self.btn_instalar.hide()
         self.btn_instalar.clicked.connect(self.iniciar_instalacion)
         self.layout_principal.addWidget(self.btn_instalar, alignment=Qt.AlignCenter)
 
-        self.btn_gestionar = QPushButton("Gestionar aplicaciones instaladas")
+        self.btn_gestionar = QPushButton(self.lang.get("btn_manage", "Manage installed apps"))
         self.btn_gestionar.setObjectName("btn_gestionar")
         self.btn_gestionar.clicked.connect(self.mostrar_gestor)
         self.layout_principal.addWidget(self.btn_gestionar, alignment=Qt.AlignCenter)
@@ -107,7 +106,7 @@ class InstaladorPro(QMainWindow):
         self.vista_gestor.hide()
         ly_g = QVBoxLayout(self.vista_gestor)
         
-        lbl_t = QLabel("Aplicaciones Instaladas")
+        lbl_t = QLabel(self.lang.get("title_gestor", "Installed Applications"))
         lbl_t.setObjectName("titulo_gestor")
         ly_g.addWidget(lbl_t)
 
@@ -121,7 +120,7 @@ class InstaladorPro(QMainWindow):
         self.scroll.setWidget(self.contenedor_lista)
         ly_g.addWidget(self.scroll)
 
-        btn_v_gestor = QPushButton("Volver")
+        btn_v_gestor = QPushButton(self.lang.get("btn_back", "Back"))
         btn_v_gestor.setObjectName("btn_volver_gestor")
         btn_v_gestor.clicked.connect(self.estado_inicial)
         ly_g.addWidget(btn_v_gestor)
@@ -129,55 +128,31 @@ class InstaladorPro(QMainWindow):
         self.layout_stack.addWidget(self.vista_instalacion)
         self.layout_stack.addWidget(self.vista_gestor)
 
-    # --- LÓGICA DE EVENTOS Y ARCHIVOS ---
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls(): event.accept()
-
-    def dropEvent(self, event):
-        archivo = event.mimeData().urls()[0].toLocalFile()
-        self.preparar_archivo(archivo)
-
-    def seleccionar_archivo(self):
-        archivo, _ = QFileDialog.getOpenFileName(self, "Abrir", "", "Apps (*.deb *.AppImage)")
-        if archivo: self.preparar_archivo(archivo)
-
-    def preparar_archivo(self, archivo):
-        self.ruta_archivo = archivo
-        if archivo.endswith(".deb"): self.manager_actual = self.mgr_deb
-        elif archivo.endswith(".AppImage"): self.manager_actual = self.mgr_appimage
-        else: return
-
-        self.btn_abrir.hide()
-        self.btn_instalar.show()
-        self.btn_instalar.setEnabled(True)
-        self.btn_volver.show()
-        self.btn_gestionar.hide()
-        
-        nombre, info = self.manager_actual.obtener_datos(archivo)
-        self.label_nombre.setText(nombre)
-        self.label_version.setText(info)
-        self.label_icono.setText("📦")
-        
-        threading.Thread(target=self.manager_actual.buscar_icono, args=(archivo,), daemon=True).start()
-
-    def iniciar_instalacion(self):
-        if not self.manager_actual: return
-        if self.manager_actual.esta_instalado(self.ruta_archivo):
-            pregunta = QMessageBox.question(self, "Ya instalado", "¿Reinstalar aplicación?", QMessageBox.Yes | QMessageBox.No)
-            if pregunta == QMessageBox.No: return
-
-        self.btn_instalar.setEnabled(False)
-        self.barra_progreso.show()
-        self.simular_progreso()
-        threading.Thread(target=self.manager_actual.instalar, args=(self.ruta_archivo,), daemon=True).start()
+    # --- MÉTODOS DE NAVEGACIÓN ---
 
     def mostrar_gestor(self):
-        self.vista_instalacion.hide(); self.vista_gestor.show(); self.cargar_lista_apps()
+        self.vista_instalacion.hide()
+        self.vista_gestor.show()
+        self.cargar_lista_apps()
+
+    def estado_inicial(self):
+        self.ruta_archivo = ""; self.manager_actual = None
+        self.vista_gestor.hide(); self.vista_instalacion.show()
+        self.btn_abrir.show(); self.btn_instalar.hide(); self.btn_volver.hide(); self.btn_gestionar.show()
+        self.label_nombre.setText(self.lang.get("welcome_msg", "Welcome"))
+        self.label_version.setText(self.lang.get("drag_drop_info", "Drag a file"))
+        self.label_icono.setPixmap(QPixmap()); self.label_icono.setText("📦")
+        self.barra_progreso.hide(); self.barra_progreso.setValue(0)
+
+    # --- LÓGICA DE GESTIÓN DE APPS (CORREGIDA PARA EVITAR CRASH) ---
 
     def cargar_lista_apps(self):
-        for i in reversed(range(self.lista_layout.count())): 
-            self.lista_layout.itemAt(i).widget().setParent(None)
+        """Limpia la lista de forma segura para evitar violaciones de segmento."""
+        while self.lista_layout.count():
+            item = self.lista_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater() # Forma segura de borrar en Qt
         
         rutas = [os.path.expanduser("~/.local/share/applications/"), "/usr/share/applications/"]
         for r in rutas:
@@ -190,27 +165,111 @@ class InstaladorPro(QMainWindow):
     def procesar_archivo_desktop(self, path):
         nombre, icono = "App", "system-run"
         try:
-            with open(path, 'r') as file:
+            with open(path, 'r', errors='ignore') as file:
+                en_seccion_principal = False
                 for l in file:
-                    if l.startswith("Name="): nombre = l.split('=')[1].strip()
-                    if l.startswith("Icon="): icono = l.split('=')[1].strip()
+                    l = l.strip()
+                    # Solo nos interesa lo que está dentro de [Desktop Entry]
+                    if l == "[Desktop Entry]":
+                        en_seccion_principal = True
+                        continue
+                    # Si empieza otra sección (como [Desktop Action]), dejamos de leer
+                    if en_seccion_principal and l.startswith("["):
+                        break
+                    
+                    if en_seccion_principal:
+                        if l.startswith("Name="):
+                            nombre = l.split('=', 1)[1].strip()
+                        elif l.startswith("Icon="):
+                            icono = l.split('=', 1)[1].strip()
         except: pass
-        self.lista_layout.addWidget(WidgetAppInstalada(nombre, path, icono, self.confirmar_borrado))
+        
+        # Evitamos añadir entradas que no tengan nombre real o sean duplicados extraños
+        if nombre != "App":
+            # PASAMOS self.lang AL FINAL
+            self.lista_layout.addWidget(
+                WidgetAppInstalada(nombre, path, icono, self.confirmar_borrado, self.lang)
+            )
 
     def confirmar_borrado(self, nombre, ruta):
-        if QMessageBox.question(self, "Eliminar", f"¿Desinstalar {nombre}?") == QMessageBox.Yes:
+        # Usamos una clave para el título y combinamos el texto para la pregunta
+        titulo = self.lang.get("btn_back", "Delete")
+        pregunta_base = self.lang.get("msg_reinstall_ask", "Delete") # O crea una clave "confirm_delete"
+        
+        pregunta = QMessageBox.question(
+            self, 
+            titulo, 
+            f"{pregunta_base} {nombre}?", 
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if pregunta == QMessageBox.Yes:
             manager = self.mgr_appimage if "/home/" in ruta else self.mgr_deb
             if manager.desinstalar(ruta):
-                QTimer.singleShot(1000, self.cargar_lista_apps)
+                # Esperamos un poco antes de recargar para que el sistema termine de borrar
+                QTimer.singleShot(500, self.cargar_lista_apps)
 
-    def estado_inicial(self):
-        self.ruta_archivo = ""; self.manager_actual = None
-        self.vista_gestor.hide(); self.vista_instalacion.show()
-        self.btn_abrir.show(); self.btn_instalar.hide(); self.btn_volver.hide(); self.btn_gestionar.show()
-        self.label_nombre.setText("Bienvenido"); self.label_icono.setPixmap(QPixmap()); self.label_icono.setText("📦")
-        self.barra_progreso.hide(); self.barra_progreso.setValue(0)
+    # --- LÓGICA DE INSTALACIÓN ---
 
-    # --- MÉTODOS DE ACTUALIZACIÓN VISUAL ---
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls(): event.accept()
+
+    def dropEvent(self, event):
+        archivo = event.mimeData().urls()[0].toLocalFile()
+        self.preparar_archivo(archivo)
+
+    def seleccionar_archivo(self):
+        archivo, _ = QFileDialog.getOpenFileName(self, "Open", "", "Apps (*.deb *.AppImage)")
+        if archivo: self.preparar_archivo(archivo)
+
+    def preparar_archivo(self, archivo):
+        self.ruta_archivo = archivo
+        
+        if archivo.endswith(".deb"): 
+            self.manager_actual = self.mgr_deb
+        elif archivo.endswith(".AppImage"): 
+            self.manager_actual = self.mgr_appimage
+        else: 
+            return
+
+        nombre, info = self.manager_actual.obtener_datos(archivo)
+
+        # --- CAMBIOS VISUALES INMEDIATOS ---
+        self.btn_abrir.hide()
+        self.btn_instalar.show()
+        self.btn_instalar.setEnabled(True)
+        self.btn_volver.show()
+        self.btn_gestionar.hide()
+        
+        self.label_nombre.setText(nombre)
+        self.label_version.setText(self.lang.get(info, info))
+        
+        # AQUÍ ESTÁ EL TRUCO:
+        # Primero quitamos cualquier imagen vieja y ponemos el cohete YA.
+        self.label_icono.setPixmap(QPixmap()) 
+        self.label_icono.setText("🚀") 
+        
+        # Ahora, mientras el usuario ya ve el cohete, buscamos el icono real
+        threading.Thread(target=self.manager_actual.buscar_icono, args=(archivo,), daemon=True).start()
+
+   
+   
+    def iniciar_instalacion(self):
+        if not self.manager_actual: return
+        if self.manager_actual.esta_instalado(self.ruta_archivo):
+            pregunta = QMessageBox.question(
+                self, 
+                self.lang.get("msg_already_installed", "Notice"), 
+                self.lang.get("msg_reinstall_ask", "Reinstall?"), 
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if pregunta == QMessageBox.No: return
+
+        self.btn_instalar.setEnabled(False)
+        self.barra_progreso.show()
+        self.simular_progreso()
+        threading.Thread(target=self.manager_actual.instalar, args=(self.ruta_archivo,), daemon=True).start()
+
+    # --- ACTUALIZACIÓN VISUAL ---
 
     def cargar_estilos(self):
         ruta = os.path.join("assets", "styles", "style.qss")
@@ -224,18 +283,25 @@ class InstaladorPro(QMainWindow):
         act()
 
     def actualizar_icono_visual(self, ruta):
+        # Si el manager nos manda una ruta vacía o que no existe, dejamos el cohete puesto
+        if not ruta or not os.path.exists(ruta):
+            return 
+
         pix = QPixmap(ruta)
         if not pix.isNull():
+            # Si la imagen es válida: borramos el texto "🚀" y ponemos el Pixmap
             self.label_icono.setText("")
             self.label_icono.setPixmap(pix.scaled(160, 160, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        # Si la imagen es corrupta o nula, no hacemos nada y se queda el cohete
 
     def actualizar_progreso(self, v): self.barra_progreso.setValue(v)
 
-    def mostrar_resultado(self, exito, mensaje):
+    def mostrar_resultado(self, exito, mensaje_key):
         self.barra_progreso.setValue(100)
-        if exito:
-            QMessageBox.information(self, "SuperInstall", mensaje)
-            self.estado_inicial()
-        else:
-            QMessageBox.critical(self, "Error", mensaje)
-            self.btn_instalar.setEnabled(True)
+        titulo = self.lang.get("window_title", "Info") if exito else "Error"
+        
+        # Traducimos el mensaje antes de mostrar la caja
+        mensaje_traducido = self.lang.get(mensaje_key, mensaje_key)
+        
+        QMessageBox.information(self, titulo, mensaje_traducido)
+        self.estado_inicial()

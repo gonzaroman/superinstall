@@ -10,7 +10,7 @@ class AppImageManager(BaseManager):
 
     def obtener_datos(self, ruta_archivo):
         nombre = os.path.basename(ruta_archivo).replace(".AppImage", "").split("-")[0]
-        return nombre.capitalize(), "AppImage Detectada • Listo para integrar"
+        return nombre.capitalize(), "appimage_info" # <--- Enviamos la clave
 
     def buscar_icono(self, ruta_appimage):
         """Tu lógica original exacta de extracción de iconos"""
@@ -116,9 +116,9 @@ class AppImageManager(BaseManager):
             with open(os.path.join(dest_apps, f"{nombre_limpio}.desktop"), "w") as f:
                 f.write(f"[Desktop Entry]\nType=Application\nName={nombre_app}\nExec=\"{ruta_ejecutable}\"\nIcon={ruta_icon_final}\nTerminal=false\nCategories=Utility;\n")
             
-            self.comunicador.instalacion_completada.emit(True, "¡Integrado con éxito!")
+            self.comunicador.instalacion_completada.emit(True, "install_success")
         except Exception as e:
-            self.comunicador.instalacion_completada.emit(False, str(e))
+            self.comunicador.instalacion_completada.emit(False, "install_error")
 
     def desinstalar(self, ruta_desktop):
         """Tu lógica original de borrado de archivos de usuario"""

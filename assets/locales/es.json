@@ -1,0 +1,18 @@
+{
+    "window_title": "SuperInstall v3.0 - Modular",
+    "welcome_msg": "Bienvenido",
+    "drag_drop_info": "Arrastra un .deb o .AppImage",
+    "btn_select": "Seleccionar archivo",
+    "btn_install": "Instalar Ahora",
+    "btn_manage": "Gestionar aplicaciones instaladas",
+    "title_gestor": "Aplicaciones Instaladas",
+    "btn_back": "Volver",
+    "msg_already_installed": "Aplicación ya instalada",
+    "msg_reinstall_ask": "¿Deseas reinstalar la aplicación?",
+    "install_success": "¡Integrado con éxito!",
+    "install_error": "Hubo un fallo en la instalación",
+    "title_error": "Error",
+    "appimage_info": "AppImage Detectada • Listo para integrar",
+    "deb_info": "Paquete Debian • Listo para instalar",
+    "btn_delete": "Eliminar"
+}

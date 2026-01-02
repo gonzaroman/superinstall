@@ -122,3 +122,16 @@ QMainWindow, QWidget {
     border: none;
     background: transparent;
 }
+
+#barra_busqueda {
+    background-color: #2d2d2d;
+    border: 1px solid #3d3d3d;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: white;
+    margin-bottom: 10px;
+}
+
+#barra_busqueda:focus {
+    border: 1px solid #3498db;
+}

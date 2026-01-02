@@ -2,7 +2,7 @@ import os
 import threading
 from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QWidget, QLabel, 
                              QPushButton, QFileDialog, QHBoxLayout, 
-                             QMessageBox, QProgressBar, QScrollArea)
+                             QMessageBox, QProgressBar, QScrollArea, QLineEdit)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap
 
@@ -109,6 +109,14 @@ class InstaladorPro(QMainWindow):
         lbl_t = QLabel(self.lang.get("title_gestor", "Installed Applications"))
         lbl_t.setObjectName("titulo_gestor")
         ly_g.addWidget(lbl_t)
+
+        # --- BARRA DE BÚSQUEDA ---
+        self.txt_busqueda = QLineEdit()
+        self.txt_busqueda.setPlaceholderText(self.lang.get("search_placeholder", "Buscar..."))
+        self.txt_busqueda.setObjectName("barra_busqueda")
+        # Conectamos el evento de escribir con la función de filtrar
+        self.txt_busqueda.textChanged.connect(self.filtrar_aplicaciones)
+        ly_g.addWidget(self.txt_busqueda)
 
         self.scroll = QScrollArea()
         self.scroll.setObjectName("scroll_area")
@@ -305,3 +313,16 @@ class InstaladorPro(QMainWindow):
         
         QMessageBox.information(self, titulo, mensaje_traducido)
         self.estado_inicial()
+
+    def filtrar_aplicaciones(self, texto):
+        """Filtra los widgets de la lista según el texto ingresado."""
+        texto = texto.lower()
+        # Recorremos todos los widgets que hay en el layout de la lista
+        for i in range(self.lista_layout.count()):
+            item = self.lista_layout.itemAt(i)
+            widget = item.widget()
+            if widget:
+                # Comparamos el nombre de la app (lbl_nombre) con la búsqueda
+                # Nota: Asegúrate que en WidgetAppInstalada el nombre sea accesible
+                match = texto in widget.lbl_nombre.text().lower()
+                widget.setVisible(match)

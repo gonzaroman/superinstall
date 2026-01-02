@@ -1,0 +1,124 @@
+/* Ventana y Fondo */
+QMainWindow, QWidget {
+    background-color: #f5f5f7;
+}
+
+/* El cuadro donde se arrastra el archivo */
+#contenedor_icono {
+    background-color: #ffffff;
+    border-radius: 20px;
+    border: 2px dashed #d1d1d3;
+}
+
+/* El emoji de la caja */
+#label_icono {
+    font-size: 90px;
+    background: transparent;
+    border: none;
+}
+
+/* Textos */
+#label_nombre {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1d1d1f;
+}
+
+#label_version {
+    font-size: 14px;
+    color: #86868b;
+}
+
+/* Botones principales */
+#btn_abrir {
+    background-color: #0071e3;
+    color: white;
+    padding: 0px 40px;
+}
+
+#btn_instalar {
+    background-color: #34c759;
+    color: white;
+    padding: 0px 50px;
+}
+
+#btn_gestionar {
+    color: #0071e3;
+    font-weight: bold;
+    border: none;
+    background: transparent;
+}
+
+/* Botón de cerrar (X) */
+#btn_volver {
+    background-color: #e5e5e7;
+    color: #86868b;
+    border-radius: 16px;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+/* Barra de progreso */
+#barra_progreso {
+    background-color: #e5e5e7;
+    border-radius: 4px;
+}
+
+#barra_progreso::chunk {
+    background-color: #0071e3;
+    border-radius: 4px;
+}
+
+/* Estilos del Gestor */
+#titulo_gestor {
+    font-size: 20px;
+    font-weight: bold;
+    color: #1d1d1f;
+    margin-bottom: 10px;
+}
+
+#scroll_area, #contenedor_lista {
+    border: none;
+    background-color: transparent;
+}
+
+/* Estilo para la fila de la aplicación */
+#widget_app {
+    background-color: white;
+    border-radius: 10px;
+    border: 1px solid #e5e5e7;
+    margin: 2px;
+}
+
+#widget_app:hover {
+    background-color: #fbfbfd;
+    border: 1px solid #0071e3;
+}
+
+/* Texto del nombre en la lista */
+#lbl_nombre_app {
+    font-size: 13px;
+    font-weight: bold;
+    border: none;
+    color: #1d1d1f;
+}
+
+/* Botón eliminar de la lista */
+#btn_eliminar_app {
+    background-color: #ff3b30;
+    color: white;
+    border-radius: 8px;
+    padding: 5px 15px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+#btn_eliminar_app:hover {
+    background-color: #d72c21;
+}
+
+/* Asegurar que el icono no tenga bordes raros */
+#lbl_icono_app {
+    border: none;
+    background: transparent;
+}

@@ -1,0 +1,22 @@
+# Entornos virtuales (el más importante)
+.venv/
+venv/
+env/
+
+# Caché de Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de configuración de VS Code o IDEs
+.vscode/
+.idea/
+.project
+.settings/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+
+# Temporales de tu aplicación (si usas /tmp locales)
+*.log

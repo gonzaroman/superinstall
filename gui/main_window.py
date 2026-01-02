@@ -10,6 +10,7 @@ from utils.signals import Comunicador
 from gui.widgets import WidgetAppInstalada
 from core.managers.deb import DebManager
 from core.managers.appimage import AppImageManager
+from core.managers.flatpak import FlatpakManager
 from utils.helpers import cargar_traducciones
 
 class InstaladorPro(QMainWindow):
@@ -25,6 +26,7 @@ class InstaladorPro(QMainWindow):
         self.comunicador = Comunicador()
         self.mgr_deb = DebManager(self.comunicador)
         self.mgr_appimage = AppImageManager(self.comunicador)
+        self.mgr_flatpak = FlatpakManager(self.comunicador)
         
         # Conexión de señales
         self.comunicador.icono_listo.connect(self.actualizar_icono_visual)
@@ -155,13 +157,38 @@ class InstaladorPro(QMainWindow):
     # --- LÓGICA DE GESTIÓN DE APPS (CORREGIDA PARA EVITAR CRASH) ---
 
     def cargar_lista_apps(self):
-        """Limpia la lista de forma segura para evitar violaciones de segmento."""
+        """Director de orquesta: Limpia y pide apps a todos los sistemas."""
+        # 1. Limpieza de seguridad
         while self.lista_layout.count():
             item = self.lista_layout.takeAt(0)
             widget = item.widget()
             if widget:
-                widget.deleteLater() # Forma segura de borrar en Qt
+                widget.deleteLater()
         
+        # 2. Cargar aplicaciones estándar (.desktop)
+        self.cargar_apps_desktop()
+        
+        # 3. Cargar aplicaciones de Flatpak (ACTUALIZADO AQUÍ)
+        try:
+            apps_flatpak = self.mgr_flatpak.listar_instalados()
+            for app in apps_flatpak:
+                nombre_label = f"{app['nombre']} (Flatpak)"
+                
+                # REEMPLAZA TU LÍNEA POR ESTA:
+                self.lista_layout.addWidget(
+                    WidgetAppInstalada(
+                        nombre_label, 
+                        app['id'], 
+                        "preferences-desktop-apps", 
+                        self.confirmar_borrado, 
+                        self.lang
+                    )
+                )
+        except Exception as e:
+            print(f"Error cargando Flatpaks: {e}")
+
+    def cargar_apps_desktop(self):
+        """Busca aplicaciones tradicionales instaladas en el sistema."""
         rutas = [os.path.expanduser("~/.local/share/applications/"), "/usr/share/applications/"]
         for r in rutas:
             if not os.path.exists(r): continue
@@ -199,21 +226,21 @@ class InstaladorPro(QMainWindow):
                 WidgetAppInstalada(nombre, path, icono, self.confirmar_borrado, self.lang)
             )
 
-    def confirmar_borrado(self, nombre, ruta):
-        # Usamos una clave para el título y combinamos el texto para la pregunta
+    def confirmar_borrado(self, nombre, ruta_o_id):
         titulo = self.lang.get("btn_back", "Delete")
-        pregunta_base = self.lang.get("msg_reinstall_ask", "Delete") # O crea una clave "confirm_delete"
+        pregunta_base = self.lang.get("msg_reinstall_ask", "Delete")
         
-        pregunta = QMessageBox.question(
-            self, 
-            titulo, 
-            f"{pregunta_base} {nombre}?", 
-            QMessageBox.Yes | QMessageBox.No
-        )
-        if pregunta == QMessageBox.Yes:
-            manager = self.mgr_appimage if "/home/" in ruta else self.mgr_deb
-            if manager.desinstalar(ruta):
-                # Esperamos un poco antes de recargar para que el sistema termine de borrar
+        if QMessageBox.question(self, titulo, f"{pregunta_base} {nombre}?") == QMessageBox.Yes:
+            # LÓGICA DE DETECCIÓN:
+            if "(Flatpak)" in nombre:
+                # Si el nombre dice Flatpak, usamos el manager de Flatpak
+                exito = self.mgr_flatpak.desinstalar(ruta_o_id)
+            else:
+                # Si no, decidimos entre AppImage o DEB según la ruta
+                manager = self.mgr_appimage if "/home/" in ruta_o_id else self.mgr_deb
+                exito = manager.desinstalar(ruta_o_id)
+            
+            if exito:
                 QTimer.singleShot(500, self.cargar_lista_apps)
 
     # --- LÓGICA DE INSTALACIÓN ---
@@ -226,8 +253,13 @@ class InstaladorPro(QMainWindow):
         self.preparar_archivo(archivo)
 
     def seleccionar_archivo(self):
-        archivo, _ = QFileDialog.getOpenFileName(self, "Open", "", "Apps (*.deb *.AppImage)")
-        if archivo: self.preparar_archivo(archivo)
+        # Añadimos *.flatpak y *.flatpakref al final del filtro
+        filtro = "Apps (*.deb *.AppImage *.flatpak *.flatpakref)"
+        
+        archivo, _ = QFileDialog.getOpenFileName(self, "Open", "", filtro)
+        
+        if archivo: 
+            self.preparar_archivo(archivo)
 
     def preparar_archivo(self, archivo):
         self.ruta_archivo = archivo
@@ -236,6 +268,8 @@ class InstaladorPro(QMainWindow):
             self.manager_actual = self.mgr_deb
         elif archivo.endswith(".AppImage"): 
             self.manager_actual = self.mgr_appimage
+        elif archivo.endswith(".flatpak") or archivo.endswith(".flatpakref"):
+            self.manager_actual = self.mgr_flatpak
         else: 
             return
 
@@ -263,20 +297,30 @@ class InstaladorPro(QMainWindow):
    
     def iniciar_instalacion(self):
         if not self.manager_actual: return
-        if self.manager_actual.esta_instalado(self.ruta_archivo):
-            pregunta = QMessageBox.question(
-                self, 
-                self.lang.get("msg_already_installed", "Notice"), 
-                self.lang.get("msg_reinstall_ask", "Reinstall?"), 
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if pregunta == QMessageBox.No: return
 
+        # 1. Obtener identificador (ID para Flatpak o Ruta para otros)
+        identificador = self.ruta_archivo
+        if hasattr(self.manager_actual, "obtener_id_desde_archivo"):
+            id_leido = self.manager_actual.obtener_id_desde_archivo(self.ruta_archivo)
+            if id_leido: identificador = id_leido
+
+        # 2. Comprobar si ya existe
+        if self.manager_actual.esta_instalado(identificador):
+            # Traemos los textos desde el JSON
+            titulo = self.lang.get("msg_already_installed_title", "Notice")
+            mensaje = self.lang.get("msg_already_installed_body", "Already installed.")
+            
+            QMessageBox.information(self, titulo, mensaje)
+            
+            # 3. Resetear al estado inicial
+            self.estado_inicial()
+            return
+
+        # 4. Instalación normal
         self.btn_instalar.setEnabled(False)
         self.barra_progreso.show()
         self.simular_progreso()
         threading.Thread(target=self.manager_actual.instalar, args=(self.ruta_archivo,), daemon=True).start()
-
     # --- ACTUALIZACIÓN VISUAL ---
 
     def cargar_estilos(self):

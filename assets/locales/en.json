@@ -14,5 +14,7 @@
     "title_error": "Error",
     "appimage_info": "AppImage Detected • Ready to integrate",
     "deb_info": "Debian Package • Ready to install",
-    "btn_delete": "Delete"
+    "btn_delete": "Delete",
+    "search_placeholder": "Search application...",
+    "flatpak_info": "Flatpak APP • ready to install"
 }

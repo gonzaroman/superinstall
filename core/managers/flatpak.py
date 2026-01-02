@@ -61,22 +61,70 @@ class FlatpakManager(BaseManager):
 
     def listar_instalados(self):
         apps = []
+        # Directorios base de Flatpak
+        bases = [
+            os.path.expanduser("~/.local/share/flatpak/exports/share/icons/hicolor"),
+            "/var/lib/flatpak/exports/share/icons/hicolor"
+        ]
+        # Tamaños de carpeta a buscar, de mayor a menor calidad
+        tamanos = ["scalable/apps", "128x128/apps", "64x64/apps", "48x48/apps", "32x32/apps"]
+
         try:
-            res = subprocess.run(["flatpak", "list", "--app", "--columns=name,application"], 
-                                 capture_output=True, text=True)
+            res = subprocess.run(
+                ["flatpak", "list", "--app", "--columns=name,application"], 
+                capture_output=True, text=True
+            )
             if res.returncode == 0:
                 for line in res.stdout.strip().split('\n'):
                     parts = line.split('\t')
                     if len(parts) >= 2:
-                        apps.append({"nombre": parts[0], "id": parts[1]})
-        except: pass
+                        app_id = parts[1]
+                        ruta_icono_final = "preferences-desktop-apps" # Icono por defecto
+
+                        # BUSCADOR INTELIGENTE
+                        encontrado = False
+                        for base in bases:
+                            if encontrado: break
+                            for tam in tamanos:
+                                if encontrado: break
+                                carpeta = os.path.join(base, tam)
+                                if not os.path.exists(carpeta): continue
+                                
+                                # Probamos con .png y con .svg
+                                for ext in [".png", ".svg"]:
+                                    posible = os.path.join(carpeta, f"{app_id}{ext}")
+                                    if os.path.exists(posible):
+                                        ruta_icono_final = posible
+                                        encontrado = True
+                                        break
+                        
+                        apps.append({
+                            "nombre": parts[0], 
+                            "id": app_id, 
+                            "icono": ruta_icono_final
+                        })
+        except Exception as e:
+            print(f"Error en motor Flatpak: {e}")
         return apps
 
     def desinstalar(self, app_id):
         try:
-            res = subprocess.run(["flatpak", "uninstall", "--user", "-y", app_id], capture_output=True)
-            return res.returncode == 0
-        except: return False
+            # We remove --user so Flatpak searches in BOTH system and user folders.
+            # This fixes the "No installed refs found" error.
+            comando = ["flatpak", "uninstall", "-y", "--noninteractive", app_id]
+            
+            res = subprocess.run(comando, capture_output=True, text=True)
+            
+            if res.returncode == 0:
+                print(f"Successfully uninstalled: {app_id}")
+                return True
+            else:
+                # If it still fails, it might be a permission issue
+                print(f"Flatpak Uninstall Error: {res.stderr}")
+                return False
+        except Exception as e:
+            print(f"Uninstall Crash: {e}")
+            return False
 
     def obtener_id_desde_archivo(self, ruta_archivo):
         """Busca la línea Application= o Name= dentro del archivo .flatpakref"""

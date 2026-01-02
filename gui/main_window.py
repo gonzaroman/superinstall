@@ -168,7 +168,7 @@ class InstaladorPro(QMainWindow):
         # 2. Cargar aplicaciones estándar (.desktop)
         self.cargar_apps_desktop()
         
-        # 3. Cargar aplicaciones de Flatpak (ACTUALIZADO AQUÍ)
+        # 3. Cargar aplicaciones de Flatpak (CORREGIDO PARA ICONOS)
         try:
             apps_flatpak = self.mgr_flatpak.listar_instalados()
             for app in apps_flatpak:
@@ -179,7 +179,7 @@ class InstaladorPro(QMainWindow):
                     WidgetAppInstalada(
                         nombre_label, 
                         app['id'], 
-                        "preferences-desktop-apps", 
+                        app['icono'],  # <--- USAMOS EL ICONO REAL DE LA APP
                         self.confirmar_borrado, 
                         self.lang
                     )
@@ -227,21 +227,27 @@ class InstaladorPro(QMainWindow):
             )
 
     def confirmar_borrado(self, nombre, ruta_o_id):
-        titulo = self.lang.get("btn_back", "Delete")
-        pregunta_base = self.lang.get("msg_reinstall_ask", "Delete")
+        # Usamos las etiquetas correctas de borrado
+        titulo = self.lang.get("title_delete", "Eliminar")
+        pregunta_base = self.lang.get("msg_confirm_delete", "Deseas eliminar")
         
+        # La pregunta ahora será: ¿Estás seguro de que deseas eliminar Poliedros (Flatpak)?
         if QMessageBox.question(self, titulo, f"{pregunta_base} {nombre}?") == QMessageBox.Yes:
-            # LÓGICA DE DETECCIÓN:
+            exito = False
+            
             if "(Flatpak)" in nombre:
-                # Si el nombre dice Flatpak, usamos el manager de Flatpak
+                print(f"Intentando desinstalar Flatpak: {ruta_o_id}")
                 exito = self.mgr_flatpak.desinstalar(ruta_o_id)
             else:
-                # Si no, decidimos entre AppImage o DEB según la ruta
                 manager = self.mgr_appimage if "/home/" in ruta_o_id else self.mgr_deb
                 exito = manager.desinstalar(ruta_o_id)
             
             if exito:
+                # Si se borró bien, refrescamos la lista
                 QTimer.singleShot(500, self.cargar_lista_apps)
+            else:
+                # Si falló, avisamos al usuario
+                QMessageBox.warning(self, "Error", "No se pudo eliminar la aplicación.")
 
     # --- LÓGICA DE INSTALACIÓN ---
 

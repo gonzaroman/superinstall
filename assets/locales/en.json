@@ -16,5 +16,10 @@
     "deb_info": "Debian Package • Ready to install",
     "btn_delete": "Delete",
     "search_placeholder": "Search application...",
-    "flatpak_info": "Flatpak APP • ready to install"
+    "flatpak_info": "Flatpak APP • ready to install",
+    "msg_already_installed_title": "Application Detected",
+    "msg_already_installed_body": "This application is already installed on your system.",
+    "msg_confirm_delete": "Are you sure you want to delete",
+    "title_delete": "Confirm deletion"
+    
 }

@@ -136,43 +136,81 @@ QMainWindow, QWidget {
     border: 1px solid #3498db;
 }
 
-/* Estilos para los Badges */
-QLabel#badge {
-    border-radius: 10px;
-    padding: 2px 8px;
+
+
+
+
+/* --- DISEÑO DE LOS BADGES (ETIQUETAS) --- */
+
+QLabel#badge_tipo {
+    font-size: 8px; /* Un pelín más pequeño al ser "subtítulo" */
     font-weight: bold;
-    font-size: 10px;
     color: white;
+    padding: 1px 4px;
+    border-radius: 4px;
 }
 
-QLabel#badge-flatpak {
-    background-color: #3498db; /* Azul Flatpak */
+/* Clases para colores */
+QLabel[class="system"]   { background-color: #27ae60; }
+QLabel[class="flatpak"]  { background-color: #3498db; }
+QLabel[class="snap"]     { background-color: #e67e22; }
+QLabel[class="appimage"] { background-color: #9b59b6; }
+
+/* Color del nombre de la aplicación */
+QLabel#lbl_nombre_app {
+    color: #2c3e50; /* Un azul oscuro grisáceo, muy legible */
+    background-color: transparent; /* Asegura que no tenga fondo propio */
 }
 
-QLabel#badge-snap {
-    background-color: #e67e22; /* Naranja Snap */
+/*  al pasar el ratón resalte aún más */
+QFrame#widget_app:hover #lbl_nombre_app {
+    color: #000000;
 }
 
-QLabel#badge-system {
-    background-color: #27ae60; /* Verde Sistema/DEB */
-}
-
-QLabel#badge-appimage {
-    background-color: #9b59b6; /* Morado AppImage */
-}
-
-/* Estilo base para todos los Badges */
+/* Estilo de los Badges (asegúrate de que el texto sea blanco aquí) */
 QLabel#badge_tipo {
     font-size: 9px;
     font-weight: bold;
-    color: white;
+    color: #ffffff; /* El texto dentro de la "píldora" sí debe ser blanco */
     padding: 2px 6px;
-    border-radius: 4px;
-    margin-top: 2px;
+    border-radius: 5px;
 }
 
-/* Colores específicos por clase */
-QLabel.flatpak { background-color: #3498db; }
-QLabel.snap    { background-color: #e67e22; }
-QLabel.system  { background-color: #27ae60; }
-QLabel.appimage { background-color: #9b59b6; }
+
+/* En style.qss */
+QLabel#lbl_nombre_app {
+    color: #2c3e50;         /* Gris muy oscuro, casi negro */
+    font-weight: bold;
+    font-size: 13px;
+    background: transparent;
+}
+
+/* Para que al pasar el ratón se sienta interactivo */
+QFrame#widget_app:hover {
+    background-color: #f8f9fa; /* Un gris blanquecino muy sutil */
+    border: 1px solid #a3a3a3ff;
+}
+
+QFrame#widget_app {
+    background-color: #ffffff;
+    border: 1px solid #e1e4e8;
+    border-radius: 10px;
+}
+
+QFrame#widget_app:hover {
+    background-color: #fcfcfc;
+    border: 1px solid #3498db; /* Un borde sutil azul al resaltar */
+}
+
+QPushButton#btn_eliminar_app {
+    background-color: #fee7e7; /* Rojo muy suave de fondo */
+    color: #e74c3c;            /* Rojo fuerte para el texto */
+    border: 1px solid #f9cdcd;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+QPushButton#btn_eliminar_app:hover {
+    background-color: #e74c3c; /* Se vuelve rojo sólido al pasar el ratón */
+    color: white;
+}

@@ -20,7 +20,9 @@ class InstaladorPro(QMainWindow):
         
         self.lang = cargar_traducciones()
         self.setWindowTitle(self.lang.get("window_title", "SuperInstall v3.0"))
-        self.setFixedSize(450, 620)
+        #self.setFixedSize(450, 620)
+        self.resize(550, 620)
+        self.setMinimumSize(500, 500)
         self.setAcceptDrops(True)
         
         self.cargar_estilos()
@@ -159,52 +161,41 @@ class InstaladorPro(QMainWindow):
     # --- LÓGICA DE GESTIÓN DE APPS (CORREGIDA PARA EVITAR CRASH) ---
 
     def cargar_lista_apps(self):
-        """Director de orquesta: Limpia y pide apps a todos los sistemas."""
-        # 1. Limpieza de seguridad
+        """Limpia y pide apps a todos los sistemas."""
+        # 1. Limpieza (Igual que antes)
         while self.lista_layout.count():
             item = self.lista_layout.takeAt(0)
             widget = item.widget()
-            if widget:
-                widget.deleteLater()
+            if widget: widget.deleteLater()
         
-        # 2. Cargar aplicaciones estándar (.desktop)
+        # 2. Cargar aplicaciones estándar (Sistema / AppImage)
         self.cargar_apps_desktop()
         
-        # 3. Cargar aplicaciones de Flatpak (CORREGIDO PARA ICONOS)
+        # 3. Cargar Flatpaks
         try:
             apps_flatpak = self.mgr_flatpak.listar_instalados()
             for app in apps_flatpak:
-                nombre_label = f"{app['nombre']} (Flatpak)"
-                
-                # REEMPLAZA TU LÍNEA POR ESTA:
+                # Ya no añadimos "(Flatpak)" al nombre, pasamos el tipo al final
                 self.lista_layout.addWidget(
                     WidgetAppInstalada(
-                        nombre_label, 
-                        app['id'], 
-                        app['icono'],  # <--- USAMOS EL ICONO REAL DE LA APP
-                        self.confirmar_borrado, 
-                        self.lang
+                        app['nombre'], app['id'], app['icono'], 
+                        self.confirmar_borrado, self.lang, "flatpak"
                     )
                 )
-        except Exception as e:
-            print(f"Error cargando Flatpaks: {e}")
+        except Exception as e: print(f"Error Flatpaks: {e}")
         
-        # 4. Cargar aplicaciones Snap
+        # 4. Cargar Snaps
         try:
             apps_snap = self.mgr_snap.listar_instalados()
             for app in apps_snap:
-                nombre_label = f"{app['nombre']} (Snap)"
+                # Ya no añadimos "(Snap)" al nombre, pasamos el tipo al final
                 self.lista_layout.addWidget(
                     WidgetAppInstalada(
-                        nombre_label, 
-                        app['id'], 
-                        app['icono'], 
-                        self.confirmar_borrado, 
-                        self.lang
+                        app['nombre'], app['id'], app['icono'], 
+                        self.confirmar_borrado, self.lang, "snap"
                     )
                 )
-        except Exception as e:
-            print(f"Error cargando Snaps: {e}")
+        except Exception as e: print(f"Error Snaps: {e}")
 
     def cargar_apps_desktop(self):
         """Busca aplicaciones tradicionales instaladas en el sistema."""
@@ -217,17 +208,17 @@ class InstaladorPro(QMainWindow):
                     self.procesar_archivo_desktop(os.path.join(r, f))
 
     def procesar_archivo_desktop(self, path):
+        """Lee un archivo .desktop y lo añade a la lista con su Badge correspondiente."""
         nombre, icono = "App", "system-run"
         try:
             with open(path, 'r', errors='ignore') as file:
                 en_seccion_principal = False
                 for l in file:
                     l = l.strip()
-                    # Solo nos interesa lo que está dentro de [Desktop Entry]
+                    # Solo leemos la sección principal
                     if l == "[Desktop Entry]":
                         en_seccion_principal = True
                         continue
-                    # Si empieza otra sección (como [Desktop Action]), dejamos de leer
                     if en_seccion_principal and l.startswith("["):
                         break
                     
@@ -236,44 +227,51 @@ class InstaladorPro(QMainWindow):
                             nombre = l.split('=', 1)[1].strip()
                         elif l.startswith("Icon="):
                             icono = l.split('=', 1)[1].strip()
-        except: pass
+        except Exception as e:
+            print(f"Error leyendo desktop {path}: {e}")
         
-        # Evitamos añadir entradas que no tengan nombre real o sean duplicados extraños
+        # Si logramos extraer un nombre válido
         if nombre != "App":
-            # PASAMOS self.lang AL FINAL
+            # --- LÓGICA DE BADGES PARA SISTEMA/APPIMAGE ---
+            # Si la ruta está en la carpeta personal, la marcamos como AppImage
+            tipo = "appimage" if "/home/" in path else "system"
+            
+            # Añadimos el widget con el nuevo parámetro 'tipo'
             self.lista_layout.addWidget(
-                WidgetAppInstalada(nombre, path, icono, self.confirmar_borrado, self.lang)
+                WidgetAppInstalada(
+                    nombre, 
+                    path, 
+                    icono, 
+                    self.confirmar_borrado, 
+                    self.lang, 
+                    tipo
+                )
             )
 
-    def confirmar_borrado(self, nombre, ruta_o_id):
-        # Usamos las etiquetas correctas de borrado
+    
+    
+    def confirmar_borrado(self, nombre, ruta_o_id, tipo_app): # <-- Recibimos el tipo aquí
         titulo = self.lang.get("title_delete", "Eliminar")
         pregunta_base = self.lang.get("msg_confirm_delete", "Deseas eliminar")
-        
         
         if QMessageBox.question(self, titulo, f"{pregunta_base} {nombre}?") == QMessageBox.Yes:
             exito = False
             
-            if "(Flatpak)" in nombre:
-                print(f"Intentando desinstalar Flatpak: {ruta_o_id}")
+            # Usamos el tipo_app directamente para elegir el manager
+            if tipo_app == "flatpak":
                 exito = self.mgr_flatpak.desinstalar(ruta_o_id)
-
-            elif "(Snap)" in nombre: 
+            elif tipo_app == "snap":
                 exito = self.mgr_snap.desinstalar(ruta_o_id)
-            
-            
-            else:
-                manager = self.mgr_appimage if "/home/" in ruta_o_id else self.mgr_deb
-                exito = manager.desinstalar(ruta_o_id)
-
+            elif tipo_app == "appimage":
+                exito = self.mgr_appimage.desinstalar(ruta_o_id)
+            else: # system / deb
+                exito = self.mgr_deb.desinstalar(ruta_o_id)
             
             if exito:
-                # Si se borró bien, refrescamos la lista
                 QTimer.singleShot(500, self.cargar_lista_apps)
             else:
-                # Si falló, avisamos al usuario
                 QMessageBox.warning(self, "Error", "No se pudo eliminar la aplicación.")
-
+                
     # --- LÓGICA DE INSTALACIÓN ---
 
     def dragEnterEvent(self, event):

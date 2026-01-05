@@ -20,5 +20,6 @@
     "msg_already_installed_title": "Aplicación Detectada",
     "msg_already_installed_body": "Esta aplicación ya se encuentra instalada en tu sistema.",
     "msg_confirm_delete": "¿Estás seguro de que deseas eliminar",
-    "title_delete": "Confirmar eliminación"
+    "title_delete": "Confirmar eliminación",
+    "snap_info": "Paquete Snap • Listo para instalar"
 }

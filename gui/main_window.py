@@ -11,6 +11,7 @@ from gui.widgets import WidgetAppInstalada
 from core.managers.deb import DebManager
 from core.managers.appimage import AppImageManager
 from core.managers.flatpak import FlatpakManager
+from core.managers.snap import SnapManager
 from utils.helpers import cargar_traducciones
 
 class InstaladorPro(QMainWindow):
@@ -27,6 +28,7 @@ class InstaladorPro(QMainWindow):
         self.mgr_deb = DebManager(self.comunicador)
         self.mgr_appimage = AppImageManager(self.comunicador)
         self.mgr_flatpak = FlatpakManager(self.comunicador)
+        self.mgr_snap = SnapManager(self.comunicador)
         
         # Conexión de señales
         self.comunicador.icono_listo.connect(self.actualizar_icono_visual)
@@ -186,6 +188,23 @@ class InstaladorPro(QMainWindow):
                 )
         except Exception as e:
             print(f"Error cargando Flatpaks: {e}")
+        
+        # 4. Cargar aplicaciones Snap
+        try:
+            apps_snap = self.mgr_snap.listar_instalados()
+            for app in apps_snap:
+                nombre_label = f"{app['nombre']} (Snap)"
+                self.lista_layout.addWidget(
+                    WidgetAppInstalada(
+                        nombre_label, 
+                        app['id'], 
+                        app['icono'], 
+                        self.confirmar_borrado, 
+                        self.lang
+                    )
+                )
+        except Exception as e:
+            print(f"Error cargando Snaps: {e}")
 
     def cargar_apps_desktop(self):
         """Busca aplicaciones tradicionales instaladas en el sistema."""
@@ -231,16 +250,22 @@ class InstaladorPro(QMainWindow):
         titulo = self.lang.get("title_delete", "Eliminar")
         pregunta_base = self.lang.get("msg_confirm_delete", "Deseas eliminar")
         
-        # La pregunta ahora será: ¿Estás seguro de que deseas eliminar Poliedros (Flatpak)?
+        
         if QMessageBox.question(self, titulo, f"{pregunta_base} {nombre}?") == QMessageBox.Yes:
             exito = False
             
             if "(Flatpak)" in nombre:
                 print(f"Intentando desinstalar Flatpak: {ruta_o_id}")
                 exito = self.mgr_flatpak.desinstalar(ruta_o_id)
+
+            elif "(Snap)" in nombre: 
+                exito = self.mgr_snap.desinstalar(ruta_o_id)
+            
+            
             else:
                 manager = self.mgr_appimage if "/home/" in ruta_o_id else self.mgr_deb
                 exito = manager.desinstalar(ruta_o_id)
+
             
             if exito:
                 # Si se borró bien, refrescamos la lista
@@ -260,7 +285,7 @@ class InstaladorPro(QMainWindow):
 
     def seleccionar_archivo(self):
         # Añadimos *.flatpak y *.flatpakref al final del filtro
-        filtro = "Apps (*.deb *.AppImage *.flatpak *.flatpakref)"
+        filtro = "Apps (*.deb *.AppImage *.flatpak *.flatpakref *.snap)"
         
         archivo, _ = QFileDialog.getOpenFileName(self, "Open", "", filtro)
         
@@ -276,6 +301,8 @@ class InstaladorPro(QMainWindow):
             self.manager_actual = self.mgr_appimage
         elif archivo.endswith(".flatpak") or archivo.endswith(".flatpakref"):
             self.manager_actual = self.mgr_flatpak
+        elif archivo.endswith(".snap"):
+            self.manager_actual = self.mgr_snap
         else: 
             return
 

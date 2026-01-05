@@ -135,3 +135,44 @@ QMainWindow, QWidget {
 #barra_busqueda:focus {
     border: 1px solid #3498db;
 }
+
+/* Estilos para los Badges */
+QLabel#badge {
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-weight: bold;
+    font-size: 10px;
+    color: white;
+}
+
+QLabel#badge-flatpak {
+    background-color: #3498db; /* Azul Flatpak */
+}
+
+QLabel#badge-snap {
+    background-color: #e67e22; /* Naranja Snap */
+}
+
+QLabel#badge-system {
+    background-color: #27ae60; /* Verde Sistema/DEB */
+}
+
+QLabel#badge-appimage {
+    background-color: #9b59b6; /* Morado AppImage */
+}
+
+/* Estilo base para todos los Badges */
+QLabel#badge_tipo {
+    font-size: 9px;
+    font-weight: bold;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+}
+
+/* Colores específicos por clase */
+QLabel.flatpak { background-color: #3498db; }
+QLabel.snap    { background-color: #e67e22; }
+QLabel.system  { background-color: #27ae60; }
+QLabel.appimage { background-color: #9b59b6; }

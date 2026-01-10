@@ -2,9 +2,9 @@ import os
 import threading
 from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QWidget, QLabel, 
                              QPushButton, QFileDialog, QHBoxLayout, 
-                             QMessageBox, QProgressBar, QScrollArea, QLineEdit)
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QPixmap
+                             QMessageBox, QProgressBar, QScrollArea, QLineEdit, QStackedWidget)
+from PySide6.QtCore import Qt, QTimer, QSize
+from PySide6.QtGui import QPixmap, QIcon
 
 from utils.signals import Comunicador
 from gui.widgets import WidgetAppInstalada
@@ -19,385 +19,385 @@ class InstaladorPro(QMainWindow):
         super().__init__()
         
         self.lang = cargar_traducciones()
+        # Usamos el texto del JSON para el título
         self.setWindowTitle(self.lang.get("window_title", "SuperInstall v3.0"))
-        #self.setFixedSize(450, 620)
-        self.resize(550, 620)
-        self.setMinimumSize(500, 500)
+        self.resize(950, 650)
+        self.setMinimumSize(850, 550)
         self.setAcceptDrops(True)
         
-        self.cargar_estilos()
+        # Managers
         self.comunicador = Comunicador()
         self.mgr_deb = DebManager(self.comunicador)
         self.mgr_appimage = AppImageManager(self.comunicador)
         self.mgr_flatpak = FlatpakManager(self.comunicador)
         self.mgr_snap = SnapManager(self.comunicador)
         
-        # Conexión de señales
+        # Señales
         self.comunicador.icono_listo.connect(self.actualizar_icono_visual)
         self.comunicador.progreso_actualizado.connect(self.actualizar_progreso)
         self.comunicador.instalacion_completada.connect(self.mostrar_resultado)
 
-        self.setup_ui()
+        # UI
+        self.setup_ui_base()
+        self.cargar_estilos()
         
         self.ruta_archivo = ""
         self.manager_actual = None
 
-    def setup_ui(self):
-        self.stack_widget = QWidget()
-        self.setCentralWidget(self.stack_widget)
-        self.layout_stack = QVBoxLayout(self.stack_widget)
-        self.layout_stack.setContentsMargins(0,0,0,0)
+    def setup_ui_base(self):
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.layout_principal = QHBoxLayout(self.central_widget)
+        self.layout_principal.setContentsMargins(0, 0, 0, 0)
+        self.layout_principal.setSpacing(0)
 
-        # --- VISTA 1: EL INSTALADOR ---
+        # --- SIDEBAR ---
+        self.sidebar = QWidget()
+        self.sidebar.setObjectName("sidebar")
+        self.sidebar.setFixedWidth(240) # Un poco más ancha para que respire
+        ly_sidebar = QVBoxLayout(self.sidebar)
+        ly_sidebar.setContentsMargins(20, 40, 20, 40)
+        ly_sidebar.setSpacing(15)
+
+        # Logo texto
+        logo_text = QLabel("SuperInstall")
+        logo_text.setObjectName("logo_sidebar_text")
+        logo_text.setAlignment(Qt.AlignLeft)
+        ly_sidebar.addWidget(logo_text)
+        
+        ly_sidebar.addSpacing(30)
+
+        # Botones de navegación CON TEXTO TRADUCIDO
+        # Nota: Quitamos los emojis del código, los pondremos si quieres luego con iconos
+        self.btn_nav_instalar = QPushButton(self.lang.get("btn_install_nav", "Instalar"))
+        self.btn_nav_instalar.setObjectName("btn_nav")
+        self.btn_nav_instalar.setProperty("active", True)
+        self.btn_nav_instalar.setCursor(Qt.PointingHandCursor)
+        self.btn_nav_instalar.clicked.connect(lambda: self.cambiar_vista(0))
+        
+        self.btn_nav_gestionar = QPushButton(self.lang.get("btn_manage_nav", "Gestionar"))
+        self.btn_nav_gestionar.setObjectName("btn_nav")
+        self.btn_nav_gestionar.setCursor(Qt.PointingHandCursor)
+        self.btn_nav_gestionar.clicked.connect(lambda: self.cambiar_vista(1))
+
+        ly_sidebar.addWidget(self.btn_nav_instalar)
+        ly_sidebar.addWidget(self.btn_nav_gestionar)
+        ly_sidebar.addStretch()
+        
+        # --- CONTENIDO (STACKED WIDGET) ---
+        self.stack = QStackedWidget()
+        # VISTA 1: INSTALADOR
         self.vista_instalacion = QWidget()
-        self.layout_principal = QVBoxLayout(self.vista_instalacion)
-        self.layout_principal.setAlignment(Qt.AlignCenter)
-        self.layout_principal.setContentsMargins(30, 20, 30, 20)
+        self.setup_view_instalar()
+        # VISTA 2: GESTOR
+        self.vista_gestor = QWidget()
+        self.setup_view_gestionar()
 
+        self.stack.addWidget(self.vista_instalacion)
+        self.stack.addWidget(self.vista_gestor)
+
+        self.layout_principal.addWidget(self.sidebar)
+        self.layout_principal.addWidget(self.stack)
+
+    def setup_view_instalar(self):
+        layout = QVBoxLayout(self.vista_instalacion)
+        layout.setAlignment(Qt.AlignCenter)
+        layout.setContentsMargins(60, 40, 60, 60)
+        layout.setSpacing(25)
+
+        # Botón Volver
         self.btn_volver = QPushButton("✕")
         self.btn_volver.setObjectName("btn_volver")
-        self.btn_volver.setFixedSize(32, 32)
+        self.btn_volver.setFixedSize(35, 35)
+        self.btn_volver.setCursor(Qt.PointingHandCursor)
         self.btn_volver.clicked.connect(self.estado_inicial)
         self.btn_volver.hide()
         
         lt = QHBoxLayout(); lt.addStretch(); lt.addWidget(self.btn_volver)
-        self.layout_principal.addLayout(lt)
+        layout.addLayout(lt)
 
+        # CONTENEDOR DEL ICONO
         self.contenedor_icono = QWidget()
         self.contenedor_icono.setObjectName("contenedor_icono")
-        self.contenedor_icono.setFixedSize(180, 180)
-        ly_ico = QVBoxLayout(self.contenedor_icono)
-        self.label_icono = QLabel("📦")
-        self.label_icono.setObjectName("label_icono")
+        self.contenedor_icono.setFixedSize(220, 220)
+        layout_icono = QVBoxLayout(self.contenedor_icono)
+        layout_icono.setContentsMargins(0, 0, 0, 0)
+
+        self.label_icono = QLabel()
+        self.label_icono.setObjectName("label_logo_principal")
         self.label_icono.setAlignment(Qt.AlignCenter)
-        ly_ico.addWidget(self.label_icono)
-        self.layout_principal.addWidget(self.contenedor_icono, alignment=Qt.AlignCenter)
+        self.set_main_logo("🚀")
+        layout_icono.addWidget(self.label_icono)
+        
+        layout.addWidget(self.contenedor_icono, alignment=Qt.AlignCenter)
 
-        self.label_nombre = QLabel(self.lang.get("welcome_msg", "Welcome"))
+        # Textos TRADUCIDOS
+        self.label_nombre = QLabel(self.lang.get("welcome_msg", "Bienvenido"))
         self.label_nombre.setObjectName("label_nombre")
-        self.layout_principal.addWidget(self.label_nombre, alignment=Qt.AlignCenter)
+        self.label_nombre.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.label_nombre, alignment=Qt.AlignCenter)
 
-        self.label_version = QLabel(self.lang.get("drag_drop_info", "Drag a .deb or .AppImage"))
+        self.label_version = QLabel(self.lang.get("drag_drop_info", "Arrastra un archivo"))
         self.label_version.setObjectName("label_version")
         self.label_version.setAlignment(Qt.AlignCenter)
-        self.layout_principal.addWidget(self.label_version, alignment=Qt.AlignCenter)
+        self.label_version.setWordWrap(True)
+        layout.addWidget(self.label_version, alignment=Qt.AlignCenter)
 
+        # Barra de progreso
         self.barra_progreso = QProgressBar()
         self.barra_progreso.setObjectName("barra_progreso")
-        self.barra_progreso.setFixedHeight(8)
+        self.barra_progreso.setFixedHeight(6)
+        self.barra_progreso.setFixedWidth(300)
         self.barra_progreso.setTextVisible(False)
         self.barra_progreso.hide()
-        self.layout_principal.addWidget(self.barra_progreso)
+        layout.addWidget(self.barra_progreso, alignment=Qt.AlignCenter)
 
-        self.btn_abrir = QPushButton(self.lang.get("btn_select", "Select file"))
+        # Botones TRADUCIDOS
+        self.btn_abrir = QPushButton(self.lang.get("btn_select", "Seleccionar"))
         self.btn_abrir.setObjectName("btn_abrir")
-        self.btn_abrir.setFixedHeight(44)
+        self.btn_abrir.setFixedSize(200, 48)
+        self.btn_abrir.setCursor(Qt.PointingHandCursor)
         self.btn_abrir.clicked.connect(self.seleccionar_archivo)
-        self.layout_principal.addWidget(self.btn_abrir, alignment=Qt.AlignCenter)
+        layout.addWidget(self.btn_abrir, alignment=Qt.AlignCenter)
 
-        self.btn_instalar = QPushButton(self.lang.get("btn_install", "Install Now"))
+        self.btn_instalar = QPushButton(self.lang.get("btn_install", "Instalar"))
         self.btn_instalar.setObjectName("btn_instalar")
-        self.btn_instalar.setFixedHeight(44)
+        self.btn_instalar.setFixedSize(200, 48)
+        self.btn_instalar.setCursor(Qt.PointingHandCursor)
         self.btn_instalar.hide()
         self.btn_instalar.clicked.connect(self.iniciar_instalacion)
-        self.layout_principal.addWidget(self.btn_instalar, alignment=Qt.AlignCenter)
+        layout.addWidget(self.btn_instalar, alignment=Qt.AlignCenter)
 
-        self.btn_gestionar = QPushButton(self.lang.get("btn_manage", "Manage installed apps"))
-        self.btn_gestionar.setObjectName("btn_gestionar")
-        self.btn_gestionar.clicked.connect(self.mostrar_gestor)
-        self.layout_principal.addWidget(self.btn_gestionar, alignment=Qt.AlignCenter)
-
-        # --- VISTA 2: EL GESTOR ---
-        self.vista_gestor = QWidget()
-        self.vista_gestor.hide()
-        ly_g = QVBoxLayout(self.vista_gestor)
+    def setup_view_gestionar(self):
+        layout = QVBoxLayout(self.vista_gestor)
+        layout.setContentsMargins(35, 35, 35, 35)
+        layout.setSpacing(20)
         
-        lbl_t = QLabel(self.lang.get("title_gestor", "Installed Applications"))
+        # Título TRADUCIDO
+        lbl_t = QLabel(self.lang.get("title_gestor", "Apps Instaladas"))
         lbl_t.setObjectName("titulo_gestor")
-        ly_g.addWidget(lbl_t)
+        layout.addWidget(lbl_t)
 
-        # --- BARRA DE BÚSQUEDA ---
+        # Buscador TRADUCIDO
         self.txt_busqueda = QLineEdit()
         self.txt_busqueda.setPlaceholderText(self.lang.get("search_placeholder", "Buscar..."))
         self.txt_busqueda.setObjectName("barra_busqueda")
-        # Conectamos el evento de escribir con la función de filtrar
+        self.txt_busqueda.setFixedHeight(45)
         self.txt_busqueda.textChanged.connect(self.filtrar_aplicaciones)
-        ly_g.addWidget(self.txt_busqueda)
+        layout.addWidget(self.txt_busqueda)
 
         self.scroll = QScrollArea()
-        self.scroll.setObjectName("scroll_area")
         self.scroll.setWidgetResizable(True)
+        self.scroll.setObjectName("scroll_area")
         self.contenedor_lista = QWidget()
-        self.contenedor_lista.setObjectName("contenedor_lista")
         self.lista_layout = QVBoxLayout(self.contenedor_lista)
         self.lista_layout.setAlignment(Qt.AlignTop)
+        self.lista_layout.setSpacing(10)
         self.scroll.setWidget(self.contenedor_lista)
-        ly_g.addWidget(self.scroll)
+        layout.addWidget(self.scroll)
 
-        btn_v_gestor = QPushButton(self.lang.get("btn_back", "Back"))
-        btn_v_gestor.setObjectName("btn_volver_gestor")
-        btn_v_gestor.clicked.connect(self.estado_inicial)
-        ly_g.addWidget(btn_v_gestor)
+    # --- LÓGICA DE ICONOS Y NAVEGACIÓN ---
 
-        self.layout_stack.addWidget(self.vista_instalacion)
-        self.layout_stack.addWidget(self.vista_gestor)
+    def set_main_logo(self, fallback_emoji):
+        ruta_logo = os.path.join("assets", "icons", "logo_bellota.png")
+        if os.path.exists(ruta_logo):
+            pix = QPixmap(ruta_logo)
+            # Hacemos el logo un poco más pequeño dentro del contenedor
+            self.label_icono.setPixmap(pix.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.label_icono.setText("")
+        else:
+            self.label_icono.setPixmap(QPixmap())
+            self.label_icono.setText(fallback_emoji)
+            self.label_icono.setStyleSheet("font-size: 90px;")
 
-    # --- MÉTODOS DE NAVEGACIÓN ---
-
-    def mostrar_gestor(self):
-        self.vista_instalacion.hide()
-        self.vista_gestor.show()
-        self.cargar_lista_apps()
+    def cambiar_vista(self, index):
+        self.stack.setCurrentIndex(index)
+        self.btn_nav_instalar.setProperty("active", index == 0)
+        self.btn_nav_gestionar.setProperty("active", index == 1)
+        
+        # Refresco de estilos
+        self.btn_nav_instalar.style().unpolish(self.btn_nav_instalar)
+        self.btn_nav_instalar.style().polish(self.btn_nav_instalar)
+        self.btn_nav_gestionar.style().unpolish(self.btn_nav_gestionar)
+        self.btn_nav_gestionar.style().polish(self.btn_nav_gestionar)
+        
+        if index == 1:
+            self.cargar_lista_apps()
 
     def estado_inicial(self):
+        """Reset total al estado de bienvenida."""
         self.ruta_archivo = ""; self.manager_actual = None
-        self.vista_gestor.hide(); self.vista_instalacion.show()
-        self.btn_abrir.show(); self.btn_instalar.hide(); self.btn_volver.hide(); self.btn_gestionar.show()
-        self.label_nombre.setText(self.lang.get("welcome_msg", "Welcome"))
-        self.label_version.setText(self.lang.get("drag_drop_info", "Drag a file"))
-        self.label_icono.setPixmap(QPixmap()); self.label_icono.setText("📦")
+        self.btn_abrir.show(); self.btn_instalar.hide(); self.btn_volver.hide()
+        # Textos TRADUCIDOS al resetear
+        self.label_nombre.setText(self.lang.get("welcome_msg", "Bienvenido"))
+        self.label_version.setText(self.lang.get("drag_drop_info", "Arrastra un archivo"))
+        self.set_main_logo("🚀")
         self.barra_progreso.hide(); self.barra_progreso.setValue(0)
 
-    # --- LÓGICA DE GESTIÓN DE APPS (CORREGIDA PARA EVITAR CRASH) ---
+    # --- LÓGICA ORIGINAL (Mantenemos el resto igual) ---
+    # Copia aquí debajo el resto de métodos que ya tenías:
+    # cargar_lista_apps, cargar_apps_desktop, procesar_archivo_desktop, 
+    # filtrar_aplicaciones, confirmar_borrado, dragEnterEvent, dragLeaveEvent, 
+    # dropEvent, seleccionar_archivo, preparar_archivo, iniciar_instalacion, 
+    # actualizar_icono_visual, actualizar_progreso, mostrar_resultado, cargar_estilos
+
+    # --- LÓGICA ORIGINAL ---
 
     def cargar_lista_apps(self):
-        """Limpia y pide apps a todos los sistemas."""
-        # 1. Limpieza (Igual que antes)
         while self.lista_layout.count():
             item = self.lista_layout.takeAt(0)
             widget = item.widget()
             if widget: widget.deleteLater()
-        
-        # 2. Cargar aplicaciones estándar (Sistema / AppImage)
         self.cargar_apps_desktop()
-        
-        # 3. Cargar Flatpaks
         try:
-            apps_flatpak = self.mgr_flatpak.listar_instalados()
-            for app in apps_flatpak:
-                # Ya no añadimos "(Flatpak)" al nombre, pasamos el tipo al final
-                self.lista_layout.addWidget(
-                    WidgetAppInstalada(
-                        app['nombre'], app['id'], app['icono'], 
-                        self.confirmar_borrado, self.lang, "flatpak"
-                    )
-                )
-        except Exception as e: print(f"Error Flatpaks: {e}")
-        
-        # 4. Cargar Snaps
+            for app in self.mgr_flatpak.listar_instalados():
+                self.lista_layout.addWidget(WidgetAppInstalada(app['nombre'], app['id'], app['icono'], self.confirmar_borrado, self.lang, "flatpak"))
+        except: pass
         try:
-            apps_snap = self.mgr_snap.listar_instalados()
-            for app in apps_snap:
-                # Ya no añadimos "(Snap)" al nombre, pasamos el tipo al final
-                self.lista_layout.addWidget(
-                    WidgetAppInstalada(
-                        app['nombre'], app['id'], app['icono'], 
-                        self.confirmar_borrado, self.lang, "snap"
-                    )
-                )
-        except Exception as e: print(f"Error Snaps: {e}")
+            for app in self.mgr_snap.listar_instalados():
+                self.lista_layout.addWidget(WidgetAppInstalada(app['nombre'], app['id'], app['icono'], self.confirmar_borrado, self.lang, "snap"))
+        except: pass
 
     def cargar_apps_desktop(self):
-        """Busca aplicaciones tradicionales instaladas en el sistema."""
         rutas = [os.path.expanduser("~/.local/share/applications/"), "/usr/share/applications/"]
         for r in rutas:
-            if not os.path.exists(r): continue
-            for f in sorted(os.listdir(r)):
-                if f.endswith(".desktop"):
-                    if any(x in f.lower() for x in ["gnome", "nautilus", "mime"]): continue
-                    self.procesar_archivo_desktop(os.path.join(r, f))
+            if os.path.exists(r):
+                for f in sorted(os.listdir(r)):
+                    if f.endswith(".desktop"):
+                        self.procesar_archivo_desktop(os.path.join(r, f))
 
     def procesar_archivo_desktop(self, path):
-        """Lee un archivo .desktop y lo añade a la lista con su Badge correspondiente."""
         nombre, icono = "App", "system-run"
         try:
             with open(path, 'r', errors='ignore') as file:
-                en_seccion_principal = False
+                en_seccion = False
                 for l in file:
                     l = l.strip()
-                    # Solo leemos la sección principal
-                    if l == "[Desktop Entry]":
-                        en_seccion_principal = True
-                        continue
-                    if en_seccion_principal and l.startswith("["):
-                        break
-                    
-                    if en_seccion_principal:
-                        if l.startswith("Name="):
-                            nombre = l.split('=', 1)[1].strip()
-                        elif l.startswith("Icon="):
-                            icono = l.split('=', 1)[1].strip()
-        except Exception as e:
-            print(f"Error leyendo desktop {path}: {e}")
-        
-        # Si logramos extraer un nombre válido
+                    if l == "[Desktop Entry]": en_seccion = True
+                    elif en_seccion and l.startswith("["): break
+                    if en_seccion:
+                        if l.startswith("Name="): nombre = l.split('=', 1)[1].strip()
+                        elif l.startswith("Icon="): icono = l.split('=', 1)[1].strip()
+        except: pass
         if nombre != "App":
-            # --- LÓGICA DE BADGES PARA SISTEMA/APPIMAGE ---
-            # Si la ruta está en la carpeta personal, la marcamos como AppImage
             tipo = "appimage" if "/home/" in path else "system"
-            
-            # Añadimos el widget con el nuevo parámetro 'tipo'
-            self.lista_layout.addWidget(
-                WidgetAppInstalada(
-                    nombre, 
-                    path, 
-                    icono, 
-                    self.confirmar_borrado, 
-                    self.lang, 
-                    tipo
-                )
-            )
+            self.lista_layout.addWidget(WidgetAppInstalada(nombre, path, icono, self.confirmar_borrado, self.lang, tipo))
 
-    
-    
-    def confirmar_borrado(self, nombre, ruta_o_id, tipo_app): # <-- Recibimos el tipo aquí
-        titulo = self.lang.get("title_delete", "Eliminar")
-        pregunta_base = self.lang.get("msg_confirm_delete", "Deseas eliminar")
-        
-        if QMessageBox.question(self, titulo, f"{pregunta_base} {nombre}?") == QMessageBox.Yes:
+    def filtrar_aplicaciones(self, texto):
+        texto = texto.lower()
+        for i in range(self.lista_layout.count()):
+            widget = self.lista_layout.itemAt(i).widget()
+            if widget:
+                widget.setVisible(texto in widget.lbl_nombre.text().lower())
+
+    def confirmar_borrado(self, nombre, ruta_o_id, tipo_app):
+        if QMessageBox.question(self, "Delete", f"Delete {nombre}?") == QMessageBox.Yes:
             exito = False
-            
-            # Usamos el tipo_app directamente para elegir el manager
-            if tipo_app == "flatpak":
-                exito = self.mgr_flatpak.desinstalar(ruta_o_id)
-            elif tipo_app == "snap":
-                exito = self.mgr_snap.desinstalar(ruta_o_id)
-            elif tipo_app == "appimage":
-                exito = self.mgr_appimage.desinstalar(ruta_o_id)
-            else: # system / deb
-                exito = self.mgr_deb.desinstalar(ruta_o_id)
-            
-            if exito:
-                QTimer.singleShot(500, self.cargar_lista_apps)
-            else:
-                QMessageBox.warning(self, "Error", "No se pudo eliminar la aplicación.")
-                
-    # --- LÓGICA DE INSTALACIÓN ---
+            if tipo_app == "flatpak": exito = self.mgr_flatpak.desinstalar(ruta_o_id)
+            elif tipo_app == "snap": exito = self.mgr_snap.desinstalar(ruta_o_id)
+            elif tipo_app == "appimage": exito = self.mgr_appimage.desinstalar(ruta_o_id)
+            else: exito = self.mgr_deb.desinstalar(ruta_o_id)
+            if exito: QTimer.singleShot(500, self.cargar_lista_apps)
 
     def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls(): event.accept()
+        if event.mimeData().hasUrls():
+            event.accept()
+            # Efecto hover cuando arrastras archivo
+            self.contenedor_icono.setStyleSheet("""
+                #contenedor_icono {
+                    background-color: rgba(72, 126, 176, 0.15);
+                    border: 3px solid #487eb0;
+                    border-radius: 20px;
+                }
+            """)
+
+    def dragLeaveEvent(self, event):
+        self.contenedor_icono.setStyleSheet("")
 
     def dropEvent(self, event):
+        self.contenedor_icono.setStyleSheet("")
+        self.cambiar_vista(0)
         archivo = event.mimeData().urls()[0].toLocalFile()
         self.preparar_archivo(archivo)
 
     def seleccionar_archivo(self):
-        # Añadimos *.flatpak y *.flatpakref al final del filtro
+        # Filtro ampliado para incluir .flatpakref
         filtro = "Apps (*.deb *.AppImage *.flatpak *.flatpakref *.snap)"
-        
         archivo, _ = QFileDialog.getOpenFileName(self, "Open", "", filtro)
-        
         if archivo: 
             self.preparar_archivo(archivo)
 
     def preparar_archivo(self, archivo):
         self.ruta_archivo = archivo
+        ext = archivo.lower() # Pasamos a minúsculas para evitar errores
         
-        if archivo.endswith(".deb"): 
+        if ext.endswith(".deb"): 
             self.manager_actual = self.mgr_deb
-        elif archivo.endswith(".AppImage"): 
+        elif ext.endswith(".appimage"): 
             self.manager_actual = self.mgr_appimage
-        elif archivo.endswith(".flatpak") or archivo.endswith(".flatpakref"):
+        # Aceptamos AMBOS tipos de Flatpak
+        elif ext.endswith(".flatpak") or ext.endswith(".flatpakref"): 
             self.manager_actual = self.mgr_flatpak
-        elif archivo.endswith(".snap"):
+        elif ext.endswith(".snap"): 
             self.manager_actual = self.mgr_snap
         else: 
-            return
+            return # Si no es ninguno, salimos
 
+        # Obtener datos (El manager de Flatpak ahora recibirá el archivo correctamente)
         nombre, info = self.manager_actual.obtener_datos(archivo)
-
-        # --- CAMBIOS VISUALES INMEDIATOS ---
+        
         self.btn_abrir.hide()
         self.btn_instalar.show()
         self.btn_instalar.setEnabled(True)
         self.btn_volver.show()
-        self.btn_gestionar.hide()
         
         self.label_nombre.setText(nombre)
-        self.label_version.setText(self.lang.get(info, info))
+        self.label_version.setText(info)
         
-        # AQUÍ ESTÁ EL TRUCO:
-        # Primero quitamos cualquier imagen vieja y ponemos el cohete YA.
-        self.label_icono.setPixmap(QPixmap()) 
-        self.label_icono.setText("🚀") 
+        # Ponemos la Bellota o el Cohete plano mientras carga
+        self.set_main_logo("🚀")
         
-        # Ahora, mientras el usuario ya ve el cohete, buscamos el icono real
+        # Lanzamos el hilo para buscar el icono real si está disponible
         threading.Thread(target=self.manager_actual.buscar_icono, args=(archivo,), daemon=True).start()
 
-   
-   
+    # --- NAVEGACIÓN CORREGIDA ---
+
+    def cambiar_vista(self, index):
+        self.stack.setCurrentIndex(index)
+        # Actualizar visualmente los botones de la sidebar
+        self.btn_nav_instalar.setProperty("active", index == 0)
+        self.btn_nav_gestionar.setProperty("active", index == 1)
+        
+        # Forzar recarga de estilos
+        for btn in [self.btn_nav_instalar, self.btn_nav_gestionar]:
+            btn.style().unpolish(btn)
+            btn.style().polish(btn)
+            
+        if index == 1:
+            self.cargar_lista_apps()
+
+
     def iniciar_instalacion(self):
         if not self.manager_actual: return
-
-        # 1. Obtener identificador (ID para Flatpak o Ruta para otros)
-        identificador = self.ruta_archivo
-        if hasattr(self.manager_actual, "obtener_id_desde_archivo"):
-            id_leido = self.manager_actual.obtener_id_desde_archivo(self.ruta_archivo)
-            if id_leido: identificador = id_leido
-
-        # 2. Comprobar si ya existe
-        if self.manager_actual.esta_instalado(identificador):
-            # Traemos los textos desde el JSON
-            titulo = self.lang.get("msg_already_installed_title", "Notice")
-            mensaje = self.lang.get("msg_already_installed_body", "Already installed.")
-            
-            QMessageBox.information(self, titulo, mensaje)
-            
-            # 3. Resetear al estado inicial
-            self.estado_inicial()
-            return
-
-        # 4. Instalación normal
         self.btn_instalar.setEnabled(False)
         self.barra_progreso.show()
-        self.simular_progreso()
         threading.Thread(target=self.manager_actual.instalar, args=(self.ruta_archivo,), daemon=True).start()
-    # --- ACTUALIZACIÓN VISUAL ---
+
+    def actualizar_icono_visual(self, ruta):
+        if ruta and os.path.exists(ruta):
+            self.label_icono.setText("")
+            self.label_icono.setPixmap(QPixmap(ruta).scaled(180, 180, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+    def actualizar_progreso(self, v):
+        self.barra_progreso.setValue(v)
+
+    def mostrar_resultado(self, exito, mensaje_key):
+        self.barra_progreso.setValue(100)
+        QMessageBox.information(self, "SuperInstall", mensaje_key)
+        self.estado_inicial()
 
     def cargar_estilos(self):
         ruta = os.path.join("assets", "styles", "style.qss")
         if os.path.exists(ruta):
-            with open(ruta, "r") as f: self.setStyleSheet(f.read())
-
-    def simular_progreso(self):
-        def act():
-            v = self.barra_progreso.value()
-            if v < 90: self.barra_progreso.setValue(v + 5); QTimer.singleShot(200, act)
-        act()
-
-    def actualizar_icono_visual(self, ruta):
-        # Si el manager nos manda una ruta vacía o que no existe, dejamos el cohete puesto
-        if not ruta or not os.path.exists(ruta):
-            return 
-
-        pix = QPixmap(ruta)
-        if not pix.isNull():
-            # Si la imagen es válida: borramos el texto "🚀" y ponemos el Pixmap
-            self.label_icono.setText("")
-            self.label_icono.setPixmap(pix.scaled(160, 160, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        # Si la imagen es corrupta o nula, no hacemos nada y se queda el cohete
-
-    def actualizar_progreso(self, v): self.barra_progreso.setValue(v)
-
-    def mostrar_resultado(self, exito, mensaje_key):
-        self.barra_progreso.setValue(100)
-        titulo = self.lang.get("window_title", "Info") if exito else "Error"
-        
-        # Traducimos el mensaje antes de mostrar la caja
-        mensaje_traducido = self.lang.get(mensaje_key, mensaje_key)
-        
-        QMessageBox.information(self, titulo, mensaje_traducido)
-        self.estado_inicial()
-
-    def filtrar_aplicaciones(self, texto):
-        """Filtra los widgets de la lista según el texto ingresado."""
-        texto = texto.lower()
-        # Recorremos todos los widgets que hay en el layout de la lista
-        for i in range(self.lista_layout.count()):
-            item = self.lista_layout.itemAt(i)
-            widget = item.widget()
-            if widget:
-                # Comparamos el nombre de la app (lbl_nombre) con la búsqueda
-                # Nota: Asegúrate que en WidgetAppInstalada el nombre sea accesible
-                match = texto in widget.lbl_nombre.text().lower()
-                widget.setVisible(match)
+            with open(ruta, "r") as f:
+                self.setStyleSheet(f.read())

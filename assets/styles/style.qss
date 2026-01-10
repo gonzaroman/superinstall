@@ -1,216 +1,175 @@
-/* Ventana y Fondo */
-QMainWindow, QWidget {
-    background-color: #f5f5f7;
+/* ============================================
+   TEMA OSCURO PROFESIONAL (Estilo Zorin)
+   ============================================ */
+
+/* Fondo Principal */
+QMainWindow, QStackedWidget {
+    background-color: #242424; /* Gris oscuro de fondo */
+    color: #ffffff;
 }
 
-/* El cuadro donde se arrastra el archivo */
-#contenedor_icono {
-    background-color: #ffffff;
-    border-radius: 20px;
-    border: 2px dashed #d1d1d3;
+/* ============================================
+   SIDEBAR (Barra lateral)
+   ============================================ */
+#sidebar {
+    background-color: #1e1e1e; /* Un poco más oscuro que el fondo */
+    border-right: 1px solid #333333;
 }
 
-/* El emoji de la caja */
-#label_icono {
-    font-size: 90px;
-    background: transparent;
+#logo_sidebar_text {
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: bold;
+    padding-left: 15px;
+}
+
+/* Botones de navegación */
+#btn_nav {
+    background-color: transparent;
+    color: #999999; /* Texto gris apagado */
     border: none;
+    border-radius: 8px;
+    padding: 15px 20px;
+    text-align: left;
+    font-size: 16px;
+    font-weight: 500;
+    margin: 5px 10px;
+}
+
+#btn_nav:hover {
+    background-color: #333333; /* Gris al pasar el ratón */
+    color: #ffffff;
+}
+
+/* El botón activo se marca en AZUL */
+#btn_nav[active="true"] {
+    background-color: #2a2a2a;
+    color: #ffffff;
+    font-weight: bold;
+    border-left: 4px solid #3498db; /* Línea azul Zorin a la izquierda */
+}
+
+/* ============================================
+   VISTA INSTALADOR (Centro)
+   ============================================ */
+
+/* Contenedor del Icono */
+#contenedor_icono {
+    background-color: #2a2a2a;
+    border: 2px solid #333333;
+    border-radius: 30px;
 }
 
 /* Textos */
 #label_nombre {
-    font-size: 24px;
+    color: #ffffff;
+    font-size: 32px;
     font-weight: bold;
-    color: #1d1d1f;
+    margin-top: 20px;
 }
 
 #label_version {
-    font-size: 14px;
-    color: #86868b;
-}
-
-/* Botones principales */
-#btn_abrir {
-    background-color: #0071e3;
-    color: white;
-    padding: 0px 40px;
-}
-
-#btn_instalar {
-    background-color: #34c759;
-    color: white;
-    padding: 0px 50px;
-}
-
-#btn_gestionar {
-    color: #0071e3;
-    font-weight: bold;
-    border: none;
-    background: transparent;
-}
-
-/* Botón de cerrar (X) */
-#btn_volver {
-    background-color: #e5e5e7;
-    color: #86868b;
-    border-radius: 16px;
-    font-weight: bold;
+    color: #bbbbbb;
     font-size: 16px;
 }
 
-/* Barra de progreso */
-#barra_progreso {
-    background-color: #e5e5e7;
-    border-radius: 4px;
-}
-
-#barra_progreso::chunk {
-    background-color: #0071e3;
-    border-radius: 4px;
-}
-
-/* Estilos del Gestor */
-#titulo_gestor {
-    font-size: 20px;
-    font-weight: bold;
-    color: #1d1d1f;
-    margin-bottom: 10px;
-}
-
-#scroll_area, #contenedor_lista {
-    border: none;
-    background-color: transparent;
-}
-
-/* Estilo para la fila de la aplicación */
-#widget_app {
-    background-color: white;
-    border-radius: 10px;
-    border: 1px solid #e5e5e7;
-    margin: 2px;
-}
-
-#widget_app:hover {
-    background-color: #fbfbfd;
-    border: 1px solid #0071e3;
-}
-
-/* Texto del nombre en la lista */
-#lbl_nombre_app {
-    font-size: 13px;
-    font-weight: bold;
-    border: none;
-    color: #1d1d1f;
-}
-
-/* Botón eliminar de la lista */
-#btn_eliminar_app {
-    background-color: #ff3b30;
+/* Botones de Acción (Azules) */
+#btn_abrir, #btn_instalar {
+    background-color: #3498db;
     color: white;
-    border-radius: 8px;
-    padding: 5px 15px;
-    font-weight: bold;
-    font-size: 13px;
-}
-
-#btn_eliminar_app:hover {
-    background-color: #d72c21;
-}
-
-/* Asegurar que el icono no tenga bordes raros */
-#lbl_icono_app {
     border: none;
-    background: transparent;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 16px;
+    padding: 12px;
+}
+
+#btn_abrir:hover, #btn_instalar:hover {
+    background-color: #2980b9;
+}
+
+/* Botón Volver (X) */
+#btn_volver {
+    background-color: transparent;
+    color: #777777;
+    border: none;
+    font-size: 20px;
+}
+#btn_volver:hover { color: #ffffff; }
+
+/* Barra de Progreso */
+#barra_progreso {
+    background-color: #333333;
+    border-radius: 3px;
+    border: none;
+}
+#barra_progreso::chunk {
+    background-color: #3498db;
+    border-radius: 3px;
+}
+
+/* ============================================
+   VISTA GESTOR (Lista)
+   ============================================ */
+#titulo_gestor {
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 15px;
 }
 
 #barra_busqueda {
-    background-color: #2d2d2d;
-    border: 1px solid #3d3d3d;
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: white;
-    margin-bottom: 10px;
+    background-color: #2a2a2a;
+    border: 1px solid #333333;
+    border-radius: 10px;
+    padding: 10px 15px;
+    color: #ffffff;
+    font-size: 16px;
 }
 
 #barra_busqueda:focus {
     border: 1px solid #3498db;
 }
 
-
-
-
-
-/* --- DISEÑO DE LOS BADGES (ETIQUETAS) --- */
-
-QLabel#badge_tipo {
-    font-size: 8px; /* Un pelín más pequeño al ser "subtítulo" */
-    font-weight: bold;
-    color: white;
-    padding: 1px 4px;
-    border-radius: 4px;
+#scroll_area, #scroll_area QWidget {
+    background-color: transparent;
+    border: none;
 }
 
-/* Clases para colores */
+/* Tarjetas de Apps */
+#widget_app {
+    background-color: #2a2a2a;
+    border: 1px solid #333333;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 5px;
+}
+
+#widget_app:hover {
+    border: 1px solid #3498db;
+    background-color: #333333;
+}
+
+#lbl_nombre_app {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Badges de tipo */
+#badge_tipo { font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 6px; color: white;}
 QLabel[class="system"]   { background-color: #27ae60; }
 QLabel[class="flatpak"]  { background-color: #3498db; }
 QLabel[class="snap"]     { background-color: #e67e22; }
 QLabel[class="appimage"] { background-color: #9b59b6; }
 
-/* Color del nombre de la aplicación */
-QLabel#lbl_nombre_app {
-    color: #2c3e50; /* Un azul oscuro grisáceo, muy legible */
-    background-color: transparent; /* Asegura que no tenga fondo propio */
-}
-
-/*  al pasar el ratón resalte aún más */
-QFrame#widget_app:hover #lbl_nombre_app {
-    color: #000000;
-}
-
-/* Estilo de los Badges (asegúrate de que el texto sea blanco aquí) */
-QLabel#badge_tipo {
-    font-size: 9px;
+/* Botón Eliminar */
+#btn_eliminar_app {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+    border-radius: 8px;
     font-weight: bold;
-    color: #ffffff; /* El texto dentro de la "píldora" sí debe ser blanco */
-    padding: 2px 6px;
-    border-radius: 5px;
+    padding: 6px 12px;
 }
-
-
-/* En style.qss */
-QLabel#lbl_nombre_app {
-    color: #2c3e50;         /* Gris muy oscuro, casi negro */
-    font-weight: bold;
-    font-size: 13px;
-    background: transparent;
-}
-
-/* Para que al pasar el ratón se sienta interactivo */
-QFrame#widget_app:hover {
-    background-color: #f8f9fa; /* Un gris blanquecino muy sutil */
-    border: 1px solid #a3a3a3ff;
-}
-
-QFrame#widget_app {
-    background-color: #ffffff;
-    border: 1px solid #e1e4e8;
-    border-radius: 10px;
-}
-
-QFrame#widget_app:hover {
-    background-color: #fcfcfc;
-    border: 1px solid #3498db; /* Un borde sutil azul al resaltar */
-}
-
-QPushButton#btn_eliminar_app {
-    background-color: #fee7e7; /* Rojo muy suave de fondo */
-    color: #e74c3c;            /* Rojo fuerte para el texto */
-    border: 1px solid #f9cdcd;
-    border-radius: 6px;
-    font-weight: bold;
-}
-
-QPushButton#btn_eliminar_app:hover {
-    background-color: #e74c3c; /* Se vuelve rojo sólido al pasar el ratón */
-    color: white;
-}
+#btn_eliminar_app:hover { background-color: #e74c3c; color: white; }

@@ -2,7 +2,7 @@ import os
 import threading
 from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QWidget, QLabel, 
                              QPushButton, QFileDialog, QHBoxLayout, 
-                             QMessageBox, QProgressBar, QScrollArea, QLineEdit, QStackedWidget)
+                             QMessageBox, QProgressBar, QScrollArea, QLineEdit, QStackedWidget, QToolButton)
 from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtGui import QPixmap, QIcon
 
@@ -44,6 +44,68 @@ class InstaladorPro(QMainWindow):
         self.ruta_archivo = ""
         self.manager_actual = None
 
+    def xsetup_ui_base(self):
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.layout_principal = QHBoxLayout(self.central_widget)
+        self.layout_principal.setContentsMargins(0, 0, 0, 0)
+        self.layout_principal.setSpacing(0)
+
+        # --- SIDEBAR (Barra Lateral) ---
+        self.sidebar = QWidget()
+        self.sidebar.setObjectName("sidebar")
+        self.sidebar.setFixedWidth(220)
+        ly_sidebar = QVBoxLayout(self.sidebar)
+        ly_sidebar.setContentsMargins(15, 40, 15, 20)
+        ly_sidebar.setSpacing(10)
+
+        self.btn_nav_instalar = QPushButton(f"  {self.lang.get('btn_install_nav', 'Instalar')}")
+        self.btn_nav_instalar.setObjectName("btn_nav")
+        self.btn_nav_instalar.setProperty("active", True)
+        
+        # --- AÑADIR ICONO ---
+        self.btn_nav_instalar.setIcon(QIcon("assets/icons/nav_install.png"))
+        self.btn_nav_instalar.setIconSize(QSize(20, 20)) # Tamaño ideal para sidebar
+        
+        self.btn_nav_instalar.clicked.connect(lambda: self.cambiar_vista(0))
+
+        # 2. Botón Gestionar
+        self.btn_nav_gestionar = QPushButton(f"  {self.lang.get('btn_manage_nav', 'Gestionar')}")
+        self.btn_nav_gestionar.setObjectName("btn_nav")
+        
+        # --- AÑADIR ICONO ---
+        self.btn_nav_gestionar.setIcon(QIcon("assets/icons/nav_manage.png"))
+        self.btn_nav_gestionar.setIconSize(QSize(20, 20))
+        
+        self.btn_nav_gestionar.clicked.connect(lambda: self.cambiar_vista(1))
+
+        # Botones de navegación usando las llaves CORRECTAS del JSON
+        self.btn_nav_instalar = QPushButton(self.lang.get("btn_install_nav", "Instalar"))
+        self.btn_nav_instalar.setObjectName("btn_nav")
+        self.btn_nav_instalar.setProperty("active", True)
+        self.btn_nav_instalar.clicked.connect(lambda: self.cambiar_vista(0))
+
+        self.btn_nav_gestionar = QPushButton(self.lang.get("btn_manage_nav", "Gestionar"))
+        self.btn_nav_gestionar.setObjectName("btn_nav")
+        self.btn_nav_gestionar.clicked.connect(lambda: self.cambiar_vista(1))
+
+        ly_sidebar.addWidget(self.btn_nav_instalar)
+        ly_sidebar.addWidget(self.btn_nav_gestionar)
+        ly_sidebar.addStretch()
+
+        # --- CONTENIDO ---
+        self.stack = QStackedWidget()
+        self.vista_instalacion = QWidget()
+        self.setup_view_instalar()
+        self.vista_gestor = QWidget()
+        self.setup_view_gestionar()
+
+        self.stack.addWidget(self.vista_instalacion)
+        self.stack.addWidget(self.vista_gestor)
+
+        self.layout_principal.addWidget(self.sidebar)
+        self.layout_principal.addWidget(self.stack)
+
     def setup_ui_base(self):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -51,45 +113,51 @@ class InstaladorPro(QMainWindow):
         self.layout_principal.setContentsMargins(0, 0, 0, 0)
         self.layout_principal.setSpacing(0)
 
-        # --- SIDEBAR ---
+        # --- SIDEBAR (Panel Lateral Robusto) ---
         self.sidebar = QWidget()
         self.sidebar.setObjectName("sidebar")
-        self.sidebar.setFixedWidth(240) # Un poco más ancha para que respire
+        self.sidebar.setFixedWidth(220) # Ensanchamos la barra lateral
         ly_sidebar = QVBoxLayout(self.sidebar)
-        ly_sidebar.setContentsMargins(20, 40, 20, 40)
-        ly_sidebar.setSpacing(15)
+        ly_sidebar.setContentsMargins(15, 50, 15, 20) # Más aire arriba
+        ly_sidebar.setSpacing(25) # Más espacio entre los dos botones
 
-        # Logo texto
-        logo_text = QLabel("SuperInstall")
-        logo_text.setObjectName("logo_sidebar_text")
-        logo_text.setAlignment(Qt.AlignLeft)
-        ly_sidebar.addWidget(logo_text)
-        
-        ly_sidebar.addSpacing(30)
-
-        # Botones de navegación CON TEXTO TRADUCIDO
-        # Nota: Quitamos los emojis del código, los pondremos si quieres luego con iconos
-        self.btn_nav_instalar = QPushButton(self.lang.get("btn_install_nav", "Instalar"))
+        # 1. BOTÓN INSTALAR
+        self.btn_nav_instalar = QToolButton()
+        self.btn_nav_instalar.setText(self.lang.get('btn_install_nav', 'Instalar'))
         self.btn_nav_instalar.setObjectName("btn_nav")
         self.btn_nav_instalar.setProperty("active", True)
+        self.btn_nav_instalar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.btn_nav_instalar.setIcon(QIcon("assets/icons/nav_install.png"))
+        
+        # DIMENSIONES IMPACTANTES
+        self.btn_nav_instalar.setIconSize(QSize(120, 120)) # Icono grande
+        self.btn_nav_instalar.setFixedSize(180, 190)     # Baldosa grande
+        
         self.btn_nav_instalar.setCursor(Qt.PointingHandCursor)
         self.btn_nav_instalar.clicked.connect(lambda: self.cambiar_vista(0))
-        
-        self.btn_nav_gestionar = QPushButton(self.lang.get("btn_manage_nav", "Gestionar"))
+
+        # 2. BOTÓN GESTIONAR
+        self.btn_nav_gestionar = QToolButton()
+        self.btn_nav_gestionar.setText(self.lang.get('btn_manage_nav', 'Gestionar'))
         self.btn_nav_gestionar.setObjectName("btn_nav")
+        self.btn_nav_gestionar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.btn_nav_gestionar.setIcon(QIcon("assets/icons/nav_manage.png"))
+        
+        self.btn_nav_gestionar.setIconSize(QSize(120, 120)) 
+        self.btn_nav_gestionar.setFixedSize(180, 190)
+        
         self.btn_nav_gestionar.setCursor(Qt.PointingHandCursor)
         self.btn_nav_gestionar.clicked.connect(lambda: self.cambiar_vista(1))
 
-        ly_sidebar.addWidget(self.btn_nav_instalar)
-        ly_sidebar.addWidget(self.btn_nav_gestionar)
+        # Añadimos al layout (centrados en la sidebar)
+        ly_sidebar.addWidget(self.btn_nav_instalar, alignment=Qt.AlignCenter)
+        ly_sidebar.addWidget(self.btn_nav_gestionar, alignment=Qt.AlignCenter)
         ly_sidebar.addStretch()
-        
-        # --- CONTENIDO (STACKED WIDGET) ---
+
+        # --- CONTENIDO ---
         self.stack = QStackedWidget()
-        # VISTA 1: INSTALADOR
         self.vista_instalacion = QWidget()
         self.setup_view_instalar()
-        # VISTA 2: GESTOR
         self.vista_gestor = QWidget()
         self.setup_view_gestionar()
 
@@ -101,49 +169,51 @@ class InstaladorPro(QMainWindow):
 
     def setup_view_instalar(self):
         layout = QVBoxLayout(self.vista_instalacion)
-        layout.setAlignment(Qt.AlignCenter)
-        layout.setContentsMargins(60, 40, 60, 60)
-        layout.setSpacing(25)
+        # 1. Quitamos layout.setAlignment(Qt.AlignCenter) de aquí.
+        layout.setContentsMargins(40, 20, 40, 40)
+        layout.setSpacing(15)
 
-        # Botón Volver
+        # Botón Volver (arriba a la derecha)
         self.btn_volver = QPushButton("✕")
         self.btn_volver.setObjectName("btn_volver")
         self.btn_volver.setFixedSize(35, 35)
-        self.btn_volver.setCursor(Qt.PointingHandCursor)
-        self.btn_volver.clicked.connect(self.estado_inicial)
         self.btn_volver.hide()
-        
         lt = QHBoxLayout(); lt.addStretch(); lt.addWidget(self.btn_volver)
         layout.addLayout(lt)
+
+        # --- ESPACIADOR SUPERIOR ---
+        layout.addStretch()
 
         # CONTENEDOR DEL ICONO
         self.contenedor_icono = QWidget()
         self.contenedor_icono.setObjectName("contenedor_icono")
-        self.contenedor_icono.setFixedSize(220, 220)
-        layout_icono = QVBoxLayout(self.contenedor_icono)
-        layout_icono.setContentsMargins(0, 0, 0, 0)
-
+        self.contenedor_icono.setFixedSize(180, 180)
+        ly_ico = QVBoxLayout(self.contenedor_icono)
+        ly_ico.setContentsMargins(0, 0, 0, 0)
         self.label_icono = QLabel()
         self.label_icono.setObjectName("label_logo_principal")
         self.label_icono.setAlignment(Qt.AlignCenter)
         self.set_main_logo("🚀")
-        layout_icono.addWidget(self.label_icono)
-        
+        ly_ico.addWidget(self.label_icono)
         layout.addWidget(self.contenedor_icono, alignment=Qt.AlignCenter)
 
-        # Textos TRADUCIDOS
+        # NOMBRE DE LA APP
         self.label_nombre = QLabel(self.lang.get("welcome_msg", "Bienvenido"))
         self.label_nombre.setObjectName("label_nombre")
-        self.label_nombre.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.label_nombre, alignment=Qt.AlignCenter)
+        self.label_nombre.setAlignment(Qt.AlignCenter) # Centra el texto dentro
+        self.label_nombre.setWordWrap(True)
+        # Añadimos sin el segundo parámetro para que ocupe todo el ancho
+        layout.addWidget(self.label_nombre) 
 
+        # DESCRIPCIÓN (La que se veía pequeña)
         self.label_version = QLabel(self.lang.get("drag_drop_info", "Arrastra un archivo"))
         self.label_version.setObjectName("label_version")
-        self.label_version.setAlignment(Qt.AlignCenter)
+        self.label_version.setAlignment(Qt.AlignCenter) # Centra el texto dentro
         self.label_version.setWordWrap(True)
-        layout.addWidget(self.label_version, alignment=Qt.AlignCenter)
+        # Al no poner alignment=Qt.AlignCenter aquí, la etiqueta es tan ancha como la ventana
+        layout.addWidget(self.label_version) 
 
-        # Barra de progreso
+        # BARRA DE PROGRESO
         self.barra_progreso = QProgressBar()
         self.barra_progreso.setObjectName("barra_progreso")
         self.barra_progreso.setFixedHeight(6)
@@ -152,21 +222,20 @@ class InstaladorPro(QMainWindow):
         self.barra_progreso.hide()
         layout.addWidget(self.barra_progreso, alignment=Qt.AlignCenter)
 
-        # Botones TRADUCIDOS
+        # BOTONES
         self.btn_abrir = QPushButton(self.lang.get("btn_select", "Seleccionar"))
         self.btn_abrir.setObjectName("btn_abrir")
-        self.btn_abrir.setFixedSize(200, 48)
-        self.btn_abrir.setCursor(Qt.PointingHandCursor)
-        self.btn_abrir.clicked.connect(self.seleccionar_archivo)
+        self.btn_abrir.setFixedSize(220, 48)
         layout.addWidget(self.btn_abrir, alignment=Qt.AlignCenter)
 
         self.btn_instalar = QPushButton(self.lang.get("btn_install", "Instalar"))
         self.btn_instalar.setObjectName("btn_instalar")
-        self.btn_instalar.setFixedSize(200, 48)
-        self.btn_instalar.setCursor(Qt.PointingHandCursor)
+        self.btn_instalar.setFixedSize(220, 48)
         self.btn_instalar.hide()
-        self.btn_instalar.clicked.connect(self.iniciar_instalacion)
         layout.addWidget(self.btn_instalar, alignment=Qt.AlignCenter)
+
+        # --- ESPACIADOR INFERIOR ---
+        layout.addStretch()
 
     def setup_view_gestionar(self):
         layout = QVBoxLayout(self.vista_gestor)
@@ -234,13 +303,7 @@ class InstaladorPro(QMainWindow):
         self.set_main_logo("🚀")
         self.barra_progreso.hide(); self.barra_progreso.setValue(0)
 
-    # --- LÓGICA ORIGINAL (Mantenemos el resto igual) ---
-    # Copia aquí debajo el resto de métodos que ya tenías:
-    # cargar_lista_apps, cargar_apps_desktop, procesar_archivo_desktop, 
-    # filtrar_aplicaciones, confirmar_borrado, dragEnterEvent, dragLeaveEvent, 
-    # dropEvent, seleccionar_archivo, preparar_archivo, iniciar_instalacion, 
-    # actualizar_icono_visual, actualizar_progreso, mostrar_resultado, cargar_estilos
-
+    
     # --- LÓGICA ORIGINAL ---
 
     def cargar_lista_apps(self):
@@ -303,6 +366,7 @@ class InstaladorPro(QMainWindow):
         if event.mimeData().hasUrls():
             event.accept()
             # Efecto hover cuando arrastras archivo
+            self.contenedor_icono.setProperty("drag_active", True)
             self.contenedor_icono.setStyleSheet("""
                 #contenedor_icono {
                     background-color: rgba(72, 126, 176, 0.15);
@@ -344,15 +408,15 @@ class InstaladorPro(QMainWindow):
             return # Si no es ninguno, salimos
 
         # Obtener datos (El manager de Flatpak ahora recibirá el archivo correctamente)
-        nombre, info = self.manager_actual.obtener_datos(archivo)
-        
+        nombre, info_key = self.manager_actual.obtener_datos(archivo)
+
         self.btn_abrir.hide()
         self.btn_instalar.show()
         self.btn_instalar.setEnabled(True)
         self.btn_volver.show()
         
         self.label_nombre.setText(nombre)
-        self.label_version.setText(info)
+        self.label_version.setText(self.lang.get(info_key, info_key))
         
         # Ponemos la Bellota o el Cohete plano mientras carga
         self.set_main_logo("🚀")

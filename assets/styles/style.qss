@@ -173,3 +173,44 @@ QLabel[class="appimage"] { background-color: #9b59b6; }
     padding: 6px 12px;
 }
 #btn_eliminar_app:hover { background-color: #e74c3c; color: white; }
+
+/* Efecto cuando el archivo está "volando" sobre el programa */
+#contenedor_icono[drag_active="true"] {
+    border: 2px solid #3498db;
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+/* Estilo para las Baldosas de la Sidebar */
+QToolButton#btn_nav {
+    background-color: transparent;
+    color: #888888; /* Gris suave para los no activos */
+    border: 5px solid transparent;
+    border-radius: 10px; /* Bordes bien redondeados */
+    font-size: 16px;
+    font-weight: bold;
+    background-color: #333333;
+    
+}
+
+QToolButton#btn_nav:hover {
+    background-color: #2d2d2d;
+    color: #ffffff;
+    border: 1px solid #3498db; 
+}
+
+/* El botón activo se ilumina y destaca */
+QToolButton#btn_nav[active="true"] {
+    background-color: #333333;
+    color: #3498db; /* Azul Zorin para el texto */
+    border-left: 6px solid #3498db; 
+    border-radius: 0px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+
+/* Ajuste para que el icono no se vea borroso al agrandarlo */
+QToolButton#btn_nav QIcon {
+    padding: 5px;
+}

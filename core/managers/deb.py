@@ -4,14 +4,29 @@ from .base import BaseManager
 
 class DebManager(BaseManager):
     def obtener_datos(self, ruta_archivo):
-        """Extrae el nombre del paquete y la versión usando dpkg-deb."""
+        """Extrae el nombre, versión y peso del archivo .deb."""
         try:
+            # 1. Extraemos versión y nombre interno del paquete
             cmd = f"dpkg-deb -f '{ruta_archivo}' Package Version"
             salida = subprocess.check_output(cmd, shell=True, text=True)
-            datos = {l.split(': ')[0]: l.split(': ')[1] for l in salida.strip().split('\n') if ': ' in l}
-            return datos.get('Package', 'App'), datos.get('Version', '0.0')
-        except:
-            return "Archivo", "???"
+            datos = {l.split(': ')[0]: l.split(': ')[1].strip() for l in salida.strip().split('\n') if ': ' in l}
+            
+            nombre = datos.get('Package', 'App')
+            version = datos.get('Version', '0.0')
+            
+            # 2. Obtenemos el peso usando el método de la clase padre
+            peso = self.obtener_tamano_archivo(ruta_archivo)
+            
+            # 3. Formateamos la descripción final
+            # Ejemplo: "APP Debian • v0.0.28 • 85.2 MB • lista para instalar"
+            info_texto = f"APP Debian • v{version} • {peso} • lista para instalar"
+            
+            return nombre.capitalize(), info_texto
+            
+        except Exception as e:
+            # Fallback en caso de que el archivo esté corrupto o dpkg falle
+            peso_error = self.obtener_tamano_archivo(ruta_archivo)
+            return "Archivo Debian", f"Error al leer metadatos • {peso_error}"
 
     def buscar_icono(self, ruta_deb):
         """Extrae el icono del paquete .deb."""

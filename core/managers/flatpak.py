@@ -18,8 +18,10 @@ class FlatpakManager(BaseManager):
                 nombre = partes[-2]
         else:
             nombre = partes[0]
+        
+        peso = self.obtener_tamano_archivo(ruta_archivo)
 
-        return nombre.capitalize(), "APP Flatpak • lista para instalar"
+        return nombre.capitalize(), f"APP Flatpak • {peso} • lista para instalar"
 
     def buscar_icono(self, ruta_archivo):
         self.comunicador.icono_listo.emit("")

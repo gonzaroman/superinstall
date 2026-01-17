@@ -59,6 +59,16 @@ class BaseManager(ABC):
                 print(f"Error al cancelar: {e}")
             finally:
                 self.proceso_actual = None
+                
+    def obtener_tamano_archivo(self, ruta_archivo):
+        """Devuelve el tamaño del archivo en formato legible (MB/KB)."""
+        try:
+            bytes_size = os.path.getsize(ruta_archivo)
+            if bytes_size < 1024 * 1024:
+                return f"{bytes_size / 1024:.1f} KB"
+            return f"{bytes_size / (1024 * 1024):.1f} MB"
+        except:
+            return "Tamaño desconocido"
 
     # --- MÉTODOS ABSTRACTOS (A implementar por cada hijo) ---
     @abstractmethod

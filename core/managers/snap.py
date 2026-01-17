@@ -8,11 +8,19 @@ class SnapManager(BaseManager):
         super().__init__(comunicador)
 
     def obtener_datos(self, ruta_archivo):
-        """Extrae el nombre legible del archivo .snap."""
+        """Extrae el nombre legible y el peso del paquete Snap."""
+        # 1. Tu lógica de limpieza de nombre
         base = os.path.basename(ruta_archivo).replace(".snap", "")
-        # Limpiamos posibles versiones (ej: spotify_1.0 -> Spotify)
         nombre = base.split('_')[0].split('-')[0]
-        return nombre.capitalize(), "snap_info"
+        
+        # 2. Obtenemos el peso desde la clase base
+        peso = self.obtener_tamano_archivo(ruta_archivo)
+        
+        # 3. Formateamos la descripción
+        # Ejemplo: "Paquete Snap • 64.0 MB • listo para instalar"
+        info_texto = f"Paquete Snap • {peso} • listo para instalar"
+        
+        return nombre.capitalize(), info_texto
 
     def buscar_icono(self, ruta_archivo):
         """Para instalaciones nuevas desde archivo, usamos el cohete."""

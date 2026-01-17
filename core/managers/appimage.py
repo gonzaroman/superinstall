@@ -9,9 +9,19 @@ class AppImageManager(BaseManager):
         self.ruta_icono_extraido = ""  # Aquí guardaremos la ruta para el .desktop
 
     def obtener_datos(self, ruta_archivo):
+        """Extrae el nombre del archivo y añade el peso detectado."""
+        
         nombre = os.path.basename(ruta_archivo).replace(".AppImage", "").split("-")[0]
-        return nombre.capitalize(), "appimage_info" # <--- Enviamos la clave
-
+        
+        
+        peso = self.obtener_tamano_archivo(ruta_archivo)
+        
+        
+        # Ejemplo: "AppImage • 124.5 MB • listo para usar"
+        info_texto = f"AppImage • {peso} • listo para usar"
+        
+        return nombre.capitalize(), info_texto 
+    
     def buscar_icono(self, ruta_appimage):
         """Tu lógica original exacta de extracción de iconos"""
         ruta_temp = "/tmp/superinstall_appdir"

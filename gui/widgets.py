@@ -1,6 +1,6 @@
 import os
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QPixmap, QIcon
 
 class WidgetAppInstalada(QFrame):
@@ -14,28 +14,47 @@ class WidgetAppInstalada(QFrame):
         layout_principal.setContentsMargins(15, 5, 15, 5)
         layout_principal.setSpacing(15)
 
-        # --- 1. ICONO (Recuperado y Asegurado) ---
+        #
+        # --- 1. ICONO (Versión Ultra-Compatible) ---
         self.lbl_icono = QLabel()
-        self.lbl_icono.setFixedSize(40, 40) # Un poco más grande para que se vea bien
+        self.lbl_icono.setFixedSize(48, 48) 
         self.lbl_icono.setAlignment(Qt.AlignCenter)
+
+        # --- ESTILO DE "BALDOSA" BLANCA ---
+        self.lbl_icono.setStyleSheet("""
+            background-color: #f8f9fa; /* Blanco muy suave */
+            border-radius: 10px;        /* Bordes redondeados */
+            padding: 4px;              /* Espacio para que el icono no toque los bordes */
+        """)
         
         pixmap = None
-        # Intentamos cargar la ruta absoluta (para Snaps y Flatpaks)
-        if icono_ref and os.path.isabs(str(icono_ref)) and os.path.exists(str(icono_ref)):
-            pixmap = QPixmap(icono_ref)
-        # Si no, buscamos en el tema del sistema (para apps System)
-        elif icono_ref:
-            nombre_limpio = os.path.splitext(str(icono_ref))[0]
-            icon_theme = QIcon.fromTheme(nombre_limpio)
-            if not icon_theme.isNull():
-                pixmap = icon_theme.pixmap(40, 40)
+        icono_str = str(icono_ref) if icono_ref else ""
 
-        # Aplicamos el pixmap o el icono por defecto
+        # A. Intentar como RUTA FÍSICA absoluta
+        if os.path.isabs(icono_str) and os.path.exists(icono_str):
+            pixmap = QPixmap(icono_str)
+        
+        # B. Intentar como NOMBRE DE TEMA (Ej: "discord", "spotify")
+        if (not pixmap or pixmap.isNull()) and icono_str:
+            # Quitamos la extensión y la ruta por si acaso viene sucio
+            nombre_icon_tema = os.path.basename(icono_str).split('.')[0]
+            icon_theme = QIcon.fromTheme(nombre_icon_tema)
+            
+            if not icon_theme.isNull():
+                # Pedimos el pixmap al tema del sistema (Zorin/Ubuntu)
+                pixmap = icon_theme.pixmap(QSize(44, 44))
+
+        # C. APLICAR O FALLBACK
         if pixmap and not pixmap.isNull():
-            self.lbl_icono.setPixmap(pixmap.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.lbl_icono.setPixmap(pixmap.scaled(44, 44, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         else:
-            self.lbl_icono.setText("📦")
-            self.lbl_icono.setStyleSheet("font-size: 20px;")
+            # Fallback elegante: Si no hay icono, usamos uno genérico del sistema
+            icon_fallback = QIcon.fromTheme("application-x-executable")
+            if not icon_fallback.isNull():
+                self.lbl_icono.setPixmap(icon_fallback.pixmap(44, 44))
+            else:
+                self.lbl_icono.setText("📦")
+                self.lbl_icono.setStyleSheet("font-size: 24px;")
         
         layout_principal.addWidget(self.lbl_icono)
 

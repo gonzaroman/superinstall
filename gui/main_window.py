@@ -48,68 +48,7 @@ class InstaladorPro(QMainWindow):
         self.ruta_archivo = ""
         self.manager_actual = None
 
-    def xsetup_ui_base(self):
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-        self.layout_principal = QHBoxLayout(self.central_widget)
-        self.layout_principal.setContentsMargins(0, 0, 0, 0)
-        self.layout_principal.setSpacing(0)
-
-        # --- SIDEBAR (Barra Lateral) ---
-        self.sidebar = QWidget()
-        self.sidebar.setObjectName("sidebar")
-        self.sidebar.setFixedWidth(220)
-        ly_sidebar = QVBoxLayout(self.sidebar)
-        ly_sidebar.setContentsMargins(15, 40, 15, 20)
-        ly_sidebar.setSpacing(10)
-
-        self.btn_nav_instalar = QPushButton(f"  {self.lang.get('btn_install_nav', 'Instalar')}")
-        self.btn_nav_instalar.setObjectName("btn_nav")
-        self.btn_nav_instalar.setProperty("active", True)
-        
-        # --- AÑADIR ICONO ---
-        self.btn_nav_instalar.setIcon(QIcon("assets/icons/nav_install.png"))
-        self.btn_nav_instalar.setIconSize(QSize(20, 20)) # Tamaño ideal para sidebar
-        
-        self.btn_nav_instalar.clicked.connect(lambda: self.cambiar_vista(0))
-
-        # 2. Botón Gestionar
-        self.btn_nav_gestionar = QPushButton(f"  {self.lang.get('btn_manage_nav', 'Gestionar')}")
-        self.btn_nav_gestionar.setObjectName("btn_nav")
-        
-        # --- AÑADIR ICONO ---
-        self.btn_nav_gestionar.setIcon(QIcon("assets/icons/nav_manage.png"))
-        self.btn_nav_gestionar.setIconSize(QSize(20, 20))
-        
-        self.btn_nav_gestionar.clicked.connect(lambda: self.cambiar_vista(1))
-
-        # Botones de navegación usando las llaves CORRECTAS del JSON
-        self.btn_nav_instalar = QPushButton(self.lang.get("btn_install_nav", "Instalar"))
-        self.btn_nav_instalar.setObjectName("btn_nav")
-        self.btn_nav_instalar.setProperty("active", True)
-        self.btn_nav_instalar.clicked.connect(lambda: self.cambiar_vista(0))
-
-        self.btn_nav_gestionar = QPushButton(self.lang.get("btn_manage_nav", "Gestionar"))
-        self.btn_nav_gestionar.setObjectName("btn_nav")
-        self.btn_nav_gestionar.clicked.connect(lambda: self.cambiar_vista(1))
-
-        ly_sidebar.addWidget(self.btn_nav_instalar)
-        ly_sidebar.addWidget(self.btn_nav_gestionar)
-        ly_sidebar.addStretch()
-
-        # --- CONTENIDO ---
-        self.stack = QStackedWidget()
-        self.vista_instalacion = QWidget()
-        self.setup_view_instalar()
-        self.vista_gestor = QWidget()
-        self.setup_view_gestionar()
-
-        self.stack.addWidget(self.vista_instalacion)
-        self.stack.addWidget(self.vista_gestor)
-
-        self.layout_principal.addWidget(self.sidebar)
-        self.layout_principal.addWidget(self.stack)
-
+    
     def setup_ui_base(self):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -353,11 +292,17 @@ class InstaladorPro(QMainWindow):
                     if l == "[Desktop Entry]": en_seccion = True
                     elif en_seccion and l.startswith("["): break
                     if en_seccion:
-                        if l.startswith("Name="): nombre = l.split('=', 1)[1].strip()
-                        elif l.startswith("Icon="): icono = l.split('=', 1)[1].strip()
+                        if l.startswith("Name="): 
+                            nombre = l.split('=', 1)[1].strip()
+                        elif l.startswith("Icon="): 
+                            # --- MEJORA AQUÍ ---
+                            nombre_icono = l.split('=', 1)[1].strip()
+                            icono = self.resolver_ruta_icono(nombre_icono)
         except: pass
+
         if nombre != "App":
             tipo = "appimage" if "/home/" in path else "system"
+            # Ahora 'icono' será una ruta real o un nombre válido para el sistema
             self.lista_layout.addWidget(WidgetAppInstalada(nombre, path, icono, self.confirmar_borrado, self.lang, tipo))
 
     def filtrar_aplicaciones(self, texto):
@@ -564,6 +509,32 @@ class InstaladorPro(QMainWindow):
         if ruta and os.path.exists(ruta):
             self.label_icono.setText("")
             self.label_icono.setPixmap(QPixmap(ruta).scaled(180, 180, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+    def resolver_ruta_icono(self, nombre_icono):
+        """
+        Convierte un nombre de icono (ej: 'discord') en una ruta real 
+        buscando en los directorios estándar de Linux.
+        """
+        if os.path.isabs(nombre_icono) and os.path.exists(nombre_icono):
+            return nombre_icono
+
+        # Rutas donde Linux guarda los iconos de los .deb
+        rutas_sistema = [
+            "/usr/share/pixmaps",
+            "/usr/share/icons/hicolor/scalable/apps",
+            "/usr/share/icons/hicolor/48x48/apps",
+            "/usr/share/icons/hicolor/128x128/apps",
+            os.path.expanduser("~/.local/share/icons")
+        ]
+
+        for ruta in rutas_sistema:
+            for ext in [".png", ".svg", ".xpm"]:
+                posible_ruta = os.path.join(ruta, f"{nombre_icono}{ext}")
+                if os.path.exists(posible_ruta):
+                    return posible_ruta
+
+        # Si no lo encuentra, devolvemos el nombre para que QIcon intente usar el tema
+        return nombre_icono
 
     def actualizar_progreso(self, v):
         self.barra_progreso.setValue(v)

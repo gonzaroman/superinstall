@@ -169,7 +169,6 @@ class InstaladorPro(QMainWindow):
 
     def setup_view_instalar(self):
         layout = QVBoxLayout(self.vista_instalacion)
-        # 1. Quitamos layout.setAlignment(Qt.AlignCenter) de aquí.
         layout.setContentsMargins(40, 20, 40, 40)
         layout.setSpacing(15)
 
@@ -177,6 +176,11 @@ class InstaladorPro(QMainWindow):
         self.btn_volver = QPushButton("✕")
         self.btn_volver.setObjectName("btn_volver")
         self.btn_volver.setFixedSize(35, 35)
+        
+        # 🔗 CONEXIÓN RECUPERADA:
+        self.btn_volver.clicked.connect(self.estado_inicial)
+        self.btn_volver.setCursor(Qt.PointingHandCursor)
+        
         self.btn_volver.hide()
         lt = QHBoxLayout(); lt.addStretch(); lt.addWidget(self.btn_volver)
         layout.addLayout(lt)
@@ -200,17 +204,15 @@ class InstaladorPro(QMainWindow):
         # NOMBRE DE LA APP
         self.label_nombre = QLabel(self.lang.get("welcome_msg", "Bienvenido"))
         self.label_nombre.setObjectName("label_nombre")
-        self.label_nombre.setAlignment(Qt.AlignCenter) # Centra el texto dentro
+        self.label_nombre.setAlignment(Qt.AlignCenter)
         self.label_nombre.setWordWrap(True)
-        # Añadimos sin el segundo parámetro para que ocupe todo el ancho
         layout.addWidget(self.label_nombre) 
 
-        # DESCRIPCIÓN (La que se veía pequeña)
+        # DESCRIPCIÓN
         self.label_version = QLabel(self.lang.get("drag_drop_info", "Arrastra un archivo"))
         self.label_version.setObjectName("label_version")
-        self.label_version.setAlignment(Qt.AlignCenter) # Centra el texto dentro
+        self.label_version.setAlignment(Qt.AlignCenter)
         self.label_version.setWordWrap(True)
-        # Al no poner alignment=Qt.AlignCenter aquí, la etiqueta es tan ancha como la ventana
         layout.addWidget(self.label_version) 
 
         # BARRA DE PROGRESO
@@ -226,11 +228,18 @@ class InstaladorPro(QMainWindow):
         self.btn_abrir = QPushButton(self.lang.get("btn_select", "Seleccionar"))
         self.btn_abrir.setObjectName("btn_abrir")
         self.btn_abrir.setFixedSize(220, 48)
+        self.btn_abrir.setCursor(Qt.PointingHandCursor)
+        self.btn_abrir.clicked.connect(self.seleccionar_archivo) # Conectado
         layout.addWidget(self.btn_abrir, alignment=Qt.AlignCenter)
 
         self.btn_instalar = QPushButton(self.lang.get("btn_install", "Instalar"))
         self.btn_instalar.setObjectName("btn_instalar")
         self.btn_instalar.setFixedSize(220, 48)
+        
+        # 🔗 CONEXIÓN RECUPERADA:
+        self.btn_instalar.clicked.connect(self.iniciar_instalacion)
+        self.btn_instalar.setCursor(Qt.PointingHandCursor)
+        
         self.btn_instalar.hide()
         layout.addWidget(self.btn_instalar, alignment=Qt.AlignCenter)
 

@@ -27,6 +27,7 @@ class InstaladorPro(QMainWindow):
         self.resize(950, 650)
         self.setMinimumSize(850, 550)
         self.setAcceptDrops(True)
+        self.instalando = False
         
         # Managers
         self.comunicador = Comunicador()
@@ -524,10 +525,40 @@ class InstaladorPro(QMainWindow):
 
 
     def iniciar_instalacion(self):
-        if not self.manager_actual: return
-        self.btn_instalar.setEnabled(False)
-        self.barra_progreso.show()
-        threading.Thread(target=self.manager_actual.instalar, args=(self.ruta_archivo,), daemon=True).start()
+        if not self.instalando:
+            self.instalando = True
+            self.barra_progreso.show() # <-- Mostrar la barra al empezar
+            self.barra_progreso.setValue(0)
+            self.btn_instalar.setText("Cancelar Instalación")
+            self.btn_instalar.setStyleSheet("background-color: #e74c3c; color: white;") 
+            
+            threading.Thread(target=self.manager_actual.instalar, args=(self.ruta_archivo,), daemon=True).start()
+        else:
+            # Si el usuario pulsa mientras instala, cancelamos
+            self.manager_actual.cancelar_operacion()
+            self.resetear_boton_instalar()
+
+    def mostrar_resultado(self, exito, mensaje_key):
+        # 1. Lógica visual
+        self.barra_progreso.setValue(100 if exito else 0)
+        
+        # 2. Mensaje traducido
+        texto_mensaje = self.lang.get(mensaje_key, mensaje_key)
+        QMessageBox.information(self, "SuperInstall", texto_mensaje)
+        
+        # 3. Resetear para la siguiente vez
+        self.resetear_boton_instalar(exito=exito)
+        self.estado_inicial()
+
+    def resetear_boton_instalar(self, exito=False, msg=""):
+        self.instalando = False
+        self.barra_progreso.setValue(0)
+        self.btn_instalar.setText("Instalar Ahora")
+        self.btn_instalar.setStyleSheet("") # Vuelve al estilo original (azul)
+        
+        if exito:
+            self.btn_instalar.setText("Reinstalar")
+            self.btn_instalar.setStyleSheet("background-color: #f39c12; color: white;") # Naranja
 
     def actualizar_icono_visual(self, ruta):
         if ruta and os.path.exists(ruta):
@@ -537,10 +568,7 @@ class InstaladorPro(QMainWindow):
     def actualizar_progreso(self, v):
         self.barra_progreso.setValue(v)
 
-    def mostrar_resultado(self, exito, mensaje_key):
-        self.barra_progreso.setValue(100)
-        QMessageBox.information(self, "SuperInstall", mensaje_key)
-        self.estado_inicial()
+    
 
     def cargar_estilos(self):
         ruta = os.path.join("assets", "styles", "style.qss")

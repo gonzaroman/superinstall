@@ -1,34 +1,77 @@
+import os
+import signal
+import subprocess
+import re
 from abc import ABC, abstractmethod
 from utils.signals import Comunicador
 
 class BaseManager(ABC):
-    """
-    Clase abstracta que define el comportamiento de cualquier gestor de paquetes.
-    """
     def __init__(self, comunicador: Comunicador):
         self.comunicador = comunicador
+        self.proceso_actual = None # <--- Para guardar el proceso
+
+    
+    def ejecutar_comando_con_progreso(self, comando, patron_regex):
+        try:
+            # CORRECCIÓN: Un solo Popen y lo guardamos en self.proceso_actual
+            self.proceso_actual = subprocess.Popen(
+                comando,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                universal_newlines=True,
+                start_new_session=True
+            )
+
+            # Leemos línea a línea desde self.proceso_actual
+            for linea in self.proceso_actual.stdout:
+                linea_limpia = linea.strip()
+                print(linea_limpia) # Debug
+                
+                match = re.search(patron_regex, linea_limpia)
+                if match:
+                    try:
+                        valor = int(match.group(1))
+                        self.comunicador.progreso_actualizado.emit(valor)
+                    except (ValueError, IndexError):
+                        pass
+
+            self.proceso_actual.wait()
+            return self.proceso_actual.returncode == 0
+        
+            
+        except Exception as e:
+            print(f"Error ejecutando comando: {e}")
+            return False
+
+    def cancelar_operacion(self):
+        if self.proceso_actual:
+            try:
+                # Usamos SIGKILL (señal 9) para forzar el cierre inmediato
+                # de pkexec y todos sus hijos (apt, dpkg, etc.)
+                os.killpg(os.getpgid(self.proceso_actual.pid), signal.SIGKILL)
+                print(">>> Proceso ELIMINADO forzosamente por el usuario.")
+            except ProcessLookupError:
+                pass 
+            except Exception as e:
+                print(f"Error al cancelar: {e}")
+            finally:
+                self.proceso_actual = None
+
+    # --- MÉTODOS ABSTRACTOS (A implementar por cada hijo) ---
+    @abstractmethod
+    def obtener_datos(self, ruta_archivo): pass
 
     @abstractmethod
-    def obtener_datos(self, ruta_archivo):
-        """Extrae nombre y versión del paquete."""
-        pass
+    def buscar_icono(self, ruta_archivo): pass
 
     @abstractmethod
-    def buscar_icono(self, ruta_archivo):
-        """Extrae el icono del paquete para mostrarlo en la UI."""
-        pass
+    def instalar(self, ruta_archivo): pass
 
     @abstractmethod
-    def instalar(self, ruta_archivo):
-        """Ejecuta la lógica de instalación/integración."""
-        pass
+    def desinstalar(self, identificador): pass
 
     @abstractmethod
-    def desinstalar(self, identificador):
-        """Lógica para eliminar la aplicación del sistema."""
-        pass
-
-    @abstractmethod
-    def esta_instalado(self, ruta_archivo):
-        """Devuelve True si la aplicación ya existe en el sistema."""
-        pass
+    def esta_instalado(self, ruta_archivo): pass

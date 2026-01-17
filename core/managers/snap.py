@@ -26,27 +26,25 @@ class SnapManager(BaseManager):
         except: return False
 
     def instalar(self, ruta_archivo):
-        def proceso():
-            try:
-                # Usamos pkexec directamente. 
-                # Si el usuario cancela la ventana, process.returncode no será 0.
-                comando = ["pkexec", "snap", "install", "--dangerous", ruta_archivo]
-                print(f"Ejecutando Snap: {' '.join(comando)}")
-                
-                process = subprocess.run(comando, capture_output=True, text=True)
-                
-                if process.returncode == 0:
-                    self.comunicador.instalacion_completada.emit(True, "install_success")
-                else:
-                    # Esto captura si el usuario canceló o si hubo error de red/archivo
-                    print(f"Error o cancelación en Snap: {process.stderr}")
-                    self.comunicador.instalacion_completada.emit(False, "install_error")
-            except Exception as e:
-                print(f"Crash en hilo de Snap: {e}")
-                self.comunicador.instalacion_completada.emit(False, "install_error")
+        """
+        Instala un paquete Snap local capturando el progreso en tiempo real.
+        """
+        # 1. Comando como cadena (string) para que funcione con shell=True en BaseManager
+        # Usamos pkexec para la elevación de privilegios
+        comando = f"pkexec snap install --dangerous {ruta_archivo}"
         
-        # Lanzamos el hilo directamente
-        threading.Thread(target=proceso, daemon=True).start()
+        # 2. Definimos el patrón para buscar el porcentaje (ejemplo: "Mounting snap 15%")
+        patron_snap = r"(\d+)%"
+        
+        # 3. Llamamos al método del padre que ya tiene toda la lógica de lectura
+        # NOTA: No hace falta crear un Thread aquí porque main_window ya lo lanza en uno
+        exito = self.ejecutar_comando_con_progreso(comando, patron_snap)
+        
+        # 4. Emitimos el resultado final
+        if exito:
+            self.comunicador.instalacion_completada.emit(True, "install_success")
+        else:
+            self.comunicador.instalacion_completada.emit(False, "install_error")
 
     def buscar_icono(self, ruta_archivo):
         """Si es un archivo .snap externo, usamos el logo de Snap."""

@@ -39,18 +39,26 @@ class DebManager(BaseManager):
             print(f"Error extrayendo icono DEB: {e}")
 
     def instalar(self, ruta_archivo):
-        """Instala el paquete usando pkexec y apt."""
-        try:
-            # Comando que ya tenías configurado
-            comando = f'pkexec apt-get install -y "{ruta_archivo}"'
-            res = subprocess.run(comando, shell=True, capture_output=True)
-            
-            if res.returncode == 0:
-                self.comunicador.instalacion_completada.emit(True, "Instalado correctamente en el sistema")
-            else:
-                self.comunicador.instalacion_completada.emit(False, "La instalación fue cancelada o falló")
-        except Exception as e:
-            self.comunicador.instalacion_completada.emit(False, str(e))
+        """
+        Instala un archivo .deb usando apt-get para resolver dependencias 
+        y captura el progreso real de la instalación.
+        """
+        # 1. Usamos apt-get en lugar de dpkg porque apt-get descarga dependencias faltantes.
+        # El parámetro -o Dpkg::Progress-Fancy=1 fuerza a APT a mostrar la barra de progreso.
+        comando = f"pkexec apt-get install -y -o Dpkg::Progress-Fancy=1 {ruta_archivo}"
+        
+        # 2. El patrón para APT es un poco distinto. 
+        # Suele mostrar: "Progress: [ 25%]"
+        patron_deb = r"Progress: \[ *(\d+)%\]"
+        
+        # 3. Ejecutamos usando la maquinaria del padre (BaseManager)
+        exito = self.ejecutar_comando_con_progreso(comando, patron_deb)
+        
+        # 4. Resultado a la UI
+        if exito:
+            self.comunicador.instalacion_completada.emit(True, "install_success")
+        else:
+            self.comunicador.instalacion_completada.emit(False, "install_error")
 
     def desinstalar(self, ruta_desktop):
         """Identifica el paquete a través del archivo .desktop y lo elimina."""

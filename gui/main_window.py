@@ -1,10 +1,13 @@
 import os
 import threading
+import subprocess
 from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QWidget, QLabel, 
                              QPushButton, QFileDialog, QHBoxLayout, 
                              QMessageBox, QProgressBar, QScrollArea, QLineEdit, QStackedWidget, QToolButton)
 from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtGui import QPixmap, QIcon
+
+from utils.system_check import SystemChecker
 
 from utils.signals import Comunicador
 from gui.widgets import WidgetAppInstalada
@@ -197,7 +200,7 @@ class InstaladorPro(QMainWindow):
         self.label_icono = QLabel()
         self.label_icono.setObjectName("label_logo_principal")
         self.label_icono.setAlignment(Qt.AlignCenter)
-        self.set_main_logo("🚀")
+        self.set_main_logo("+")
         ly_ico.addWidget(self.label_icono)
         layout.addWidget(self.contenedor_icono, alignment=Qt.AlignCenter)
 
@@ -309,7 +312,8 @@ class InstaladorPro(QMainWindow):
         # Textos TRADUCIDOS al resetear
         self.label_nombre.setText(self.lang.get("welcome_msg", "Bienvenido"))
         self.label_version.setText(self.lang.get("drag_drop_info", "Arrastra un archivo"))
-        self.set_main_logo("🚀")
+       # self.set_main_logo("🚀")
+        self.set_main_logo("+")
         self.barra_progreso.hide(); self.barra_progreso.setValue(0)
 
     
@@ -402,36 +406,105 @@ class InstaladorPro(QMainWindow):
 
     def preparar_archivo(self, archivo):
         self.ruta_archivo = archivo
-        ext = archivo.lower() # Pasamos a minúsculas para evitar errores
+        ext = archivo.lower()
         
+        # 1. Identificamos el motor y asignamos el manager
+        motor_nombre = ""
         if ext.endswith(".deb"): 
             self.manager_actual = self.mgr_deb
+            motor_nombre = "deb"
         elif ext.endswith(".appimage"): 
             self.manager_actual = self.mgr_appimage
-        # Aceptamos AMBOS tipos de Flatpak
+            motor_nombre = "appimage"
         elif ext.endswith(".flatpak") or ext.endswith(".flatpakref"): 
             self.manager_actual = self.mgr_flatpak
+            motor_nombre = "flatpak"
         elif ext.endswith(".snap"): 
             self.manager_actual = self.mgr_snap
+            motor_nombre = "snap"
         else: 
-            return # Si no es ninguno, salimos
+            return
 
-        # Obtener datos (El manager de Flatpak ahora recibirá el archivo correctamente)
+        # 2. VERIFICACIÓN DE SEGURIDAD (Soporte del sistema)
+        if not SystemChecker.esta_instalado(motor_nombre):
+            self.preparar_ui_soporte_faltante(motor_nombre)
+            return
+
+        # 3. COMPROBAR SI LA APP YA ESTÁ INSTALADA (¡Recuperado!)
+        ya_existe = self.manager_actual.esta_instalado(archivo)
+
+        # 4. FLUJO NORMAL (Si el soporte existe)
         nombre, info_key = self.manager_actual.obtener_datos(archivo)
 
         self.btn_abrir.hide()
         self.btn_instalar.show()
         self.btn_instalar.setEnabled(True)
+        
+        # Si ya existe, cambiamos el texto y el estilo del botón
+        if ya_existe:
+            texto_btn = self.lang.get("btn_reinstall", "Reinstalar")
+            self.btn_instalar.setText(texto_btn)
+            # Un toque naranja/amarillo para indicar "Atención, ya existe"
+            self.btn_instalar.setStyleSheet("background-color: #f39c12; color: white;")
+            self.label_version.setText(f"{self.lang.get(info_key, info_key)} (Ya instalada)")
+        else:
+            self.btn_instalar.setText(self.lang.get("btn_install", "Instalar"))
+            self.btn_instalar.setStyleSheet("") # Estilo normal del QSS
+            self.label_version.setText(self.lang.get(info_key, info_key))
+
+        # Reconectamos el botón a la instalación normal
+        try: self.btn_instalar.clicked.disconnect()
+        except: pass
+        self.btn_instalar.clicked.connect(self.iniciar_instalacion)
+
         self.btn_volver.show()
-        
         self.label_nombre.setText(nombre)
-        self.label_version.setText(self.lang.get(info_key, info_key))
+        self.set_main_logo("📦")
         
-        # Ponemos la Bellota o el Cohete plano mientras carga
-        self.set_main_logo("🚀")
-        
-        # Lanzamos el hilo para buscar el icono real si está disponible
         threading.Thread(target=self.manager_actual.buscar_icono, args=(archivo,), daemon=True).start()
+
+    def preparar_ui_soporte_faltante(self, motor):
+        """Configura la UI para ofrecer instalar el motor faltante."""
+        self.label_nombre.setText(f"Soporte {motor.capitalize()} no detectado")
+        self.label_version.setText(f"Tu sistema necesita {motor} para instalar este archivo.")
+        self.set_main_logo("⚠️")
+        
+        self.btn_abrir.hide()
+        self.btn_instalar.show()
+        self.btn_instalar.setEnabled(True)
+        self.btn_instalar.setText(f"Activar soporte {motor.capitalize()}")
+        
+        # Estilo visual de "Aviso/Acción"
+        self.btn_instalar.setStyleSheet("background-color: #27ae60; color: white; font-weight: bold;")
+        
+        # Conectamos el botón a una nueva función de activación
+        try: self.btn_instalar.clicked.disconnect()
+        except: pass
+        self.btn_instalar.clicked.connect(lambda: self.activar_soporte_sistema(motor))
+        self.btn_volver.show()
+
+    def activar_soporte_sistema(self, motor):
+        comando = ""
+        if motor == "flatpak":
+            comando = "pkexec apt-get update && pkexec apt-get install -y flatpak"
+        elif motor == "snap":
+            comando = "pkexec apt-get update && pkexec apt-get install -y snapd"
+            
+        if comando:
+            self.btn_instalar.setEnabled(False)
+            self.label_version.setText("Instalando soporte... Por favor, espera.")
+            
+            # Ejecutamos en un hilo para no congelar la ventana
+            def tarea():
+                res = subprocess.run(comando, shell=True)
+                if res.returncode == 0:
+                    # Si tiene éxito, volvemos a procesar el archivo
+                    self.preparar_archivo(self.ruta_archivo)
+                else:
+                    self.label_version.setText("Error al instalar el soporte.")
+                    self.btn_instalar.setEnabled(True)
+
+            threading.Thread(target=tarea, daemon=True).start()
 
     # --- NAVEGACIÓN CORREGIDA ---
 

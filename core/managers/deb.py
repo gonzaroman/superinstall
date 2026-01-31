@@ -3,6 +3,11 @@ import subprocess
 from .base import BaseManager
 
 class DebManager(BaseManager):
+
+    def __init__(self, comunicador, lang):
+        super().__init__(comunicador, lang)
+
+
     def obtener_datos(self, ruta_archivo):
         """Extrae el nombre, versión y peso del archivo .deb."""
         try:
@@ -19,9 +24,10 @@ class DebManager(BaseManager):
             
             # 3. Formateamos la descripción final
             # Ejemplo: "APP Debian • v0.0.28 • 85.2 MB • lista para instalar"
-            info_texto = f"APP Debian • v{version} • {peso} • lista para instalar"
-            
-            return nombre.capitalize(), info_texto
+            txt_tipo = self.lang.get("type_debian", "Debian Package")
+            txt_estado = self.lang.get("ready_to_install", "ready to install")
+        
+            return nombre.capitalize(), f"{txt_tipo} • v{version} • {peso} • {txt_estado}"
             
         except Exception as e:
             # Fallback en caso de que el archivo esté corrupto o dpkg falle

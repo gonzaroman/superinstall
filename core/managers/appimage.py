@@ -4,23 +4,18 @@ import subprocess
 from .base import BaseManager
 
 class AppImageManager(BaseManager):
-    def __init__(self, comunicador):
-        super().__init__(comunicador)
-        self.ruta_icono_extraido = ""  # Aquí guardaremos la ruta para el .desktop
+    def __init__(self, comunicador, lang):
+        super().__init__(comunicador, lang)
+        self.ruta_icono_extraido = ""
 
     def obtener_datos(self, ruta_archivo):
-        """Extrae el nombre del archivo y añade el peso detectado."""
-        
         nombre = os.path.basename(ruta_archivo).replace(".AppImage", "").split("-")[0]
-        
-        
         peso = self.obtener_tamano_archivo(ruta_archivo)
         
+        txt_tipo = self.lang.get("type_appimage", "AppImage")
+        txt_estado = self.lang.get("ready_to_install", "ready to install")
         
-        # Ejemplo: "AppImage • 124.5 MB • listo para usar"
-        info_texto = f"AppImage • {peso} • listo para usar"
-        
-        return nombre.capitalize(), info_texto 
+        return nombre.capitalize(), f"{txt_tipo} • {peso} • {txt_estado}"
     
     def buscar_icono(self, ruta_appimage):
         """Tu lógica original exacta de extracción de iconos"""

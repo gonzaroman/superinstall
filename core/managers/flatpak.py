@@ -4,11 +4,13 @@ import re
 from .base import BaseManager
 
 class FlatpakManager(BaseManager):
-    def __init__(self, comunicador):
-        super().__init__(comunicador)
+    def __init__(self, comunicador, lang):
+        super().__init__(comunicador, lang)
+        
+        self.lang = lang # Recibimos las traducciones desde la App principal
 
     def obtener_datos(self, ruta_archivo):
-        """Extrae el nombre legible para la interfaz."""
+        """Extrae el nombre legible y el peso, usando traducciones."""
         base = os.path.basename(ruta_archivo).replace(".flatpakref", "").replace(".flatpak", "")
         partes = base.split('.')
         
@@ -20,27 +22,25 @@ class FlatpakManager(BaseManager):
             nombre = partes[0]
         
         peso = self.obtener_tamano_archivo(ruta_archivo)
+        
+        # TRADUCCIONES: Usamos llaves del JSON
+        txt_tipo = self.lang.get("type_flatpak", "Flatpak App")
+        txt_estado = self.lang.get("ready_to_install", "ready to install")
 
-        return nombre.capitalize(), f"APP Flatpak • {peso} • lista para instalar"
-
-    def buscar_icono(self, ruta_archivo):
-        self.comunicador.icono_listo.emit("")
+        return nombre.capitalize(), f"{txt_tipo} • {peso} • {txt_estado}"
 
     def obtener_id_desde_archivo(self, ruta_archivo):
-        """
-        Extrae el ID real (io.github.X) tanto de .flatpakref como de .flatpak binarios.
-        """
+        """Extrae el ID real (io.github.X) de .flatpakref o binarios .flatpak."""
         if ruta_archivo.endswith(".flatpakref"):
             try:
                 with open(ruta_archivo, 'r') as f:
                     for linea in f:
-                        if linea.startswith('Application=') or linea.startswith('Name='):
+                        if linea.startswith(('Application=', 'Name=')):
                             return linea.split('=')[1].strip()
             except: return None
         
         elif ruta_archivo.endswith(".flatpak"):
             try:
-                # Truco profesional: preguntamos al binario por su propio ID
                 res = subprocess.run(
                     ["flatpak", "info", "--show-metadata", ruta_archivo], 
                     capture_output=True, text=True
@@ -52,48 +52,44 @@ class FlatpakManager(BaseManager):
         return None
 
     def esta_instalado(self, ruta_archivo):
-        """Detecta si la app ya existe usando el ID real del sistema."""
+        """Detecta si la app ya existe en el sistema."""
         app_id = self.obtener_id_desde_archivo(ruta_archivo)
         if not app_id:
-            # Fallback al nombre del archivo si falla la extracción
             app_id = os.path.basename(ruta_archivo).split('.')[0]
         
         try:
-            # Buscamos específicamente en el sistema
             res = subprocess.run(["flatpak", "info", "--system", app_id], capture_output=True)
             return res.returncode == 0
         except: return False
+        
 
     def instalar(self, ruta_archivo):
-        """Instala o actualiza el paquete capturando el progreso real."""
+        """Instala el paquete capturando el progreso real."""
         comando = f"pkexec flatpak install --system -y --noninteractive --or-update {ruta_archivo}"
         patron_progreso = r"(\d+)%"
         
-        # Ejecutamos el motor de la clase base
         exito = self.ejecutar_comando_con_progreso(comando, patron_progreso)
         
-        # --- EL TRUCO MAESTRO ---
-        # Si el comando falla, comprobamos si es simplemente porque ya estaba instalado
-        if not exito:
-            if self.esta_instalado(ruta_archivo):
-                print("DEBUG: Flatpak dio error pero la app ya existe. Marcamos como éxito.")
-                exito = True 
+        # Si falla pero ya existe, lo damos por bueno
+        if not exito and self.esta_instalado(ruta_archivo):
+            exito = True 
 
-        if exito:
-            self.comunicador.instalacion_completada.emit(True, "install_success")
-        else:
-            self.comunicador.instalacion_completada.emit(False, "install_error")
+        # Enviamos la LLAVE del mensaje, no el texto
+        self.comunicador.instalacion_completada.emit(exito, "install_success" if exito else "install_error")
 
+    def buscar_icono(self, ruta_archivo):
+        """Busca el icono antes de instalar. Flatpak no lo permite fácilmente sin instalar,
+        así que enviamos un icono genérico o vacío."""
+        # Podrías poner una ruta a un logo de flatpak aquí si lo tienes
+        self.comunicador.icono_listo.emit("")
     
-
     def listar_instalados(self):
+        """Lista apps instaladas y busca sus iconos de forma inteligente."""
         apps = []
-        # Directorios base de Flatpak
         bases = [
             os.path.expanduser("~/.local/share/flatpak/exports/share/icons/hicolor"),
             "/var/lib/flatpak/exports/share/icons/hicolor"
         ]
-        # Tamaños de carpeta a buscar, de mayor a menor calidad
         tamanos = ["scalable/apps", "128x128/apps", "64x64/apps", "48x48/apps", "32x32/apps"]
 
         try:
@@ -106,136 +102,34 @@ class FlatpakManager(BaseManager):
                     parts = line.split('\t')
                     if len(parts) >= 2:
                         app_id = parts[1]
-                        ruta_icono_final = "preferences-desktop-apps" # Icono por defecto
-
-                        # BUSCADOR INTELIGENTE
-                        encontrado = False
-                        for base in bases:
-                            if encontrado: break
-                            for tam in tamanos:
-                                if encontrado: break
-                                carpeta = os.path.join(base, tam)
-                                if not os.path.exists(carpeta): continue
-                                
-                                # Probamos con .png y con .svg
-                                for ext in [".png", ".svg"]:
-                                    posible = os.path.join(carpeta, f"{app_id}{ext}")
-                                    if os.path.exists(posible):
-                                        ruta_icono_final = posible
-                                        encontrado = True
-                                        break
+                        ruta_icono = self._buscar_icono_sistema(app_id, bases, tamanos)
                         
                         apps.append({
                             "nombre": parts[0], 
                             "id": app_id, 
-                            "icono": ruta_icono_final
+                            "icono": ruta_icono
                         })
         except Exception as e:
-            print(f"Error en motor Flatpak: {e}")
+            print(f"Error listing Flatpaks: {e}")
         return apps
 
-    def desinstalar(self, app_id):
-        try:
-            # We remove --user so Flatpak searches in BOTH system and user folders.
-            # This fixes the "No installed refs found" error.
-            comando = ["flatpak", "uninstall", "-y", "--noninteractive", app_id]
-            
-            res = subprocess.run(comando, capture_output=True, text=True)
-            
-            if res.returncode == 0:
-                print(f"Successfully uninstalled: {app_id}")
-                return True
-            else:
-                # If it still fails, it might be a permission issue
-                print(f"Flatpak Uninstall Error: {res.stderr}")
-                return False
-        except Exception as e:
-            print(f"Uninstall Crash: {e}")
-            return False
-
-    def obtener_id_desde_archivo(self, ruta_archivo):
-        """Busca la línea Application= o Name= dentro del archivo .flatpakref"""
-        if not ruta_archivo.endswith(".flatpakref"): return None
-        try:
-            with open(ruta_archivo, 'r') as f:
-                for linea in f:
-                    if linea.startswith('Application=') or linea.startswith('Name='):
-                        return linea.split('=')[1].strip()
-        except: return None
-
-    def listar_instalados(self):
-        apps = []
-        # Directorios base de Flatpak
-        bases = [
-            os.path.expanduser("~/.local/share/flatpak/exports/share/icons/hicolor"),
-            "/var/lib/flatpak/exports/share/icons/hicolor"
-        ]
-        # Tamaños de carpeta a buscar, de mayor a menor calidad
-        tamanos = ["scalable/apps", "128x128/apps", "64x64/apps", "48x48/apps", "32x32/apps"]
-
-        try:
-            res = subprocess.run(
-                ["flatpak", "list", "--app", "--columns=name,application"], 
-                capture_output=True, text=True
-            )
-            if res.returncode == 0:
-                for line in res.stdout.strip().split('\n'):
-                    parts = line.split('\t')
-                    if len(parts) >= 2:
-                        app_id = parts[1]
-                        ruta_icono_final = "preferences-desktop-apps" # Icono por defecto
-
-                        # BUSCADOR INTELIGENTE
-                        encontrado = False
-                        for base in bases:
-                            if encontrado: break
-                            for tam in tamanos:
-                                if encontrado: break
-                                carpeta = os.path.join(base, tam)
-                                if not os.path.exists(carpeta): continue
-                                
-                                # Probamos con .png y con .svg
-                                for ext in [".png", ".svg"]:
-                                    posible = os.path.join(carpeta, f"{app_id}{ext}")
-                                    if os.path.exists(posible):
-                                        ruta_icono_final = posible
-                                        encontrado = True
-                                        break
-                        
-                        apps.append({
-                            "nombre": parts[0], 
-                            "id": app_id, 
-                            "icono": ruta_icono_final
-                        })
-        except Exception as e:
-            print(f"Error en motor Flatpak: {e}")
-        return apps
+    def _buscar_icono_sistema(self, app_id, bases, tamanos):
+        """Método privado para no repetir la lógica del buscador de iconos."""
+        for base in bases:
+            for tam in tamanos:
+                carpeta = os.path.join(base, tam)
+                if not os.path.exists(carpeta): continue
+                for ext in [".png", ".svg"]:
+                    posible = os.path.join(carpeta, f"{app_id}{ext}")
+                    if os.path.exists(posible):
+                        return posible
+        return "preferences-desktop-apps"
 
     def desinstalar(self, app_id):
+        """Desinstala la aplicación del sistema."""
         try:
-            # We remove --user so Flatpak searches in BOTH system and user folders.
-            # This fixes the "No installed refs found" error.
             comando = ["flatpak", "uninstall", "-y", "--noninteractive", app_id]
-            
             res = subprocess.run(comando, capture_output=True, text=True)
-            
-            if res.returncode == 0:
-                print(f"Successfully uninstalled: {app_id}")
-                return True
-            else:
-                # If it still fails, it might be a permission issue
-                print(f"Flatpak Uninstall Error: {res.stderr}")
-                return False
-        except Exception as e:
-            print(f"Uninstall Crash: {e}")
+            return res.returncode == 0
+        except:
             return False
-
-    def obtener_id_desde_archivo(self, ruta_archivo):
-        """Busca la línea Application= o Name= dentro del archivo .flatpakref"""
-        if not ruta_archivo.endswith(".flatpakref"): return None
-        try:
-            with open(ruta_archivo, 'r') as f:
-                for linea in f:
-                    if linea.startswith('Application=') or linea.startswith('Name='):
-                        return linea.split('=')[1].strip()
-        except: return None

@@ -6,9 +6,12 @@ from abc import ABC, abstractmethod
 from utils.signals import Comunicador
 
 class BaseManager(ABC):
-    def __init__(self, comunicador: Comunicador):
+    def __init__(self, comunicador: Comunicador, lang): # <--- Añadimos lang
         self.comunicador = comunicador
-        self.proceso_actual = None # <--- Para guardar el proceso
+        self.lang = lang # <--- Guardamos las traducciones para todos
+        self.proceso_actual = None
+    
+    
 
     
     def ejecutar_comando_con_progreso(self, comando, patron_regex):

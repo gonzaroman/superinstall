@@ -4,23 +4,18 @@ import threading
 from .base import BaseManager
 
 class SnapManager(BaseManager):
-    def __init__(self, comunicador):
-        super().__init__(comunicador)
+    def __init__(self, comunicador, lang):
+        super().__init__(comunicador, lang)
 
     def obtener_datos(self, ruta_archivo):
-        """Extrae el nombre legible y el peso del paquete Snap."""
-        # 1. Tu lógica de limpieza de nombre
         base = os.path.basename(ruta_archivo).replace(".snap", "")
         nombre = base.split('_')[0].split('-')[0]
-        
-        # 2. Obtenemos el peso desde la clase base
         peso = self.obtener_tamano_archivo(ruta_archivo)
         
-        # 3. Formateamos la descripción
-        # Ejemplo: "Paquete Snap • 64.0 MB • listo para instalar"
-        info_texto = f"Paquete Snap • {peso} • listo para instalar"
+        txt_tipo = self.lang.get("type_snap", "Snap App")
+        txt_estado = self.lang.get("ready_to_install", "ready to install")
         
-        return nombre.capitalize(), info_texto
+        return nombre.capitalize(), f"{txt_tipo} • {peso} • {txt_estado}"
 
     def buscar_icono(self, ruta_archivo):
         """Para instalaciones nuevas desde archivo, usamos el cohete."""

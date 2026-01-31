@@ -211,12 +211,17 @@ class InstaladorPro(QMainWindow):
 
     def estado_inicial(self):
         """Reset total a la pantalla de bienvenida"""
-        self.ruta_archivo = ""; self.manager_actual = None
-        self.btn_abrir.show(); self.btn_instalar.hide(); self.btn_volver.hide()
+        self.ruta_archivo = ""; 
+        self.manager_actual = None
+        self.instalando = False
+        self.btn_abrir.show(); 
+        self.btn_instalar.hide(); 
+        self.btn_volver.hide()
         self.label_nombre.setText(self.lang.get("welcome_msg", "Welcome"))
         self.label_version.setText(self.lang.get("drag_drop_info", "Drag and drop a file"))
         self.set_main_logo("+")
-        self.barra_progreso.hide(); self.barra_progreso.setValue(0)
+        self.barra_progreso.hide(); 
+        self.barra_progreso.setValue(0)
         self.btn_instalar.setStyleSheet("") 
 
     def preparar_archivo(self, archivo):
@@ -232,7 +237,7 @@ class InstaladorPro(QMainWindow):
             ".snap": (self.mgr_snap, "snap")
         }
 
-        # Identificamos motor
+        # 1. Identificamos el motor
         self.manager_actual = None
         motor_nombre = ""
         for k, v in motores.items():
@@ -242,12 +247,30 @@ class InstaladorPro(QMainWindow):
         
         if not self.manager_actual: return
 
-        # Verificación de Soporte (Flatpak/Snap)
+        # 2. Verificación de Soporte de Binarios (¿Está instalado flatpak/snap?)
         if not SystemChecker.esta_instalado(motor_nombre):
             self.preparar_ui_soporte_faltante(motor_nombre)
             return
 
-        # Flujo Normal: Extraer datos y mostrar UI de instalación
+        # 3. COMPROBACIÓN DE ARQUITECTURA (Lo movemos aquí arriba)
+        arch_pc = SystemChecker.obtener_arquitectura_sistema()
+        arch_app = SystemChecker.obtener_arquitectura_archivo(archivo, motor_nombre)
+
+        if not SystemChecker.es_compatible(arch_pc, arch_app):
+            # Si no es compatible, avisamos inmediatamente y bloqueamos todo
+            msg_error = self.lang.get("arch_error", "Incompatible architecture")
+            self.label_nombre.setText(os.path.basename(archivo))
+            self.label_version.setText(f"⚠️ {msg_error}: {arch_app}")
+            self.set_main_logo("🚫")
+            
+            self.btn_abrir.hide()
+            self.btn_instalar.show()
+            self.btn_instalar.setEnabled(False)
+            self.btn_instalar.setStyleSheet("background-color: #7f8c8d; color: #bdc3c7;")
+            self.btn_volver.show()
+            return # Aquí termina todo si la arquitectura falla
+
+        # 4. Flujo Normal (Solo llegamos aquí si la arquitectura es OK)
         ya_existe = self.manager_actual.esta_instalado(archivo)
         nombre, info_texto = self.manager_actual.obtener_datos(archivo)
 
@@ -269,9 +292,9 @@ class InstaladorPro(QMainWindow):
             self.btn_instalar.setStyleSheet("") 
             self.label_version.setText(info_texto)
 
-        # Buscar icono en segundo plano
+        # Buscar icono en segundo plano (Solo si la arquitectura era correcta)
         threading.Thread(target=self.manager_actual.buscar_icono, args=(archivo,), daemon=True).start()
-
+    
     def preparar_ui_soporte_faltante(self, motor):
         """Ofrece instalar el motor (Flatpak/Snap) si no existe"""
         txt_not_detected = self.lang.get("support_not_detected", "Support not detected")
@@ -329,6 +352,7 @@ class InstaladorPro(QMainWindow):
         self.barra_progreso.setValue(100 if exito else 0)
         texto_mensaje = self.lang.get(mensaje_key, mensaje_key)
         QMessageBox.information(self, "SuperInstall", texto_mensaje)
+        self.instalando = False
         self.estado_inicial()
 
     # --- UTILIDADES DE UI ---

@@ -1,7 +1,7 @@
 {
-    "window_title": "SuperInstall v3.0",
-    "welcome_msg": "Welcome to SuperInstall",
-    "drag_drop_info": "Drag and drop an installer file here",
+    "window_title": "SuperInstall",
+    "welcome_msg": "Welcome",
+    "drag_drop_info": "Drag or Select deb, Flatpak, AppImage o Snap file here",
     "btn_install_nav": "Install",
     "btn_manage_nav": "Manage",
     "btn_select": "Select File",
@@ -12,11 +12,20 @@
     "support_not_detected": "support not detected",
     "system_needs": "Your system needs",
     "btn_activate": "Activate",
-    "msg_activating": "Activating support... please wait.",
+    "msg_activating": "Activating... please wait.",
     "title_gestor": "Installed Applications",
     "search_placeholder": "Search apps...",
     "msg_confirm_delete": "Are you sure you want to delete",
     "title_delete": "Delete Application",
-    "install_success": "Installation completed successfully!",
-    "install_error": "An error occurred during installation."
+    "install_success": "Installation successful!",
+    "install_error": "Installation failed",
+    "type_debian": "Debian Package",
+    "type_flatpak": "Flatpak App",
+    "type_appimage": "AppImage",
+    "type_snap": "Snap App",
+    "ready_to_install": "ready to install",
+    "unknown_size": "Unknown size",
+    "error_metadata": "Error reading metadata",
+    "arch_error": "Incompatible architecture"
+
 }

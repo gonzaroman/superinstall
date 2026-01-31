@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from utils.signals import Comunicador
 
 class BaseManager(ABC):
-    def __init__(self, comunicador: Comunicador, lang): # <--- Añadimos lang
+    def __init__(self, comunicador, lang): # <-- Añadimos lang aquí
         self.comunicador = comunicador
-        self.lang = lang # <--- Guardamos las traducciones para todos
+        self.lang = lang # <-- Ahora todos los managers conocen el idioma
         self.proceso_actual = None
     
     
@@ -71,7 +71,7 @@ class BaseManager(ABC):
                 return f"{bytes_size / 1024:.1f} KB"
             return f"{bytes_size / (1024 * 1024):.1f} MB"
         except:
-            return "Tamaño desconocido"
+            return self.lang.get("unknown_size", "Unknown size")
 
     # --- MÉTODOS ABSTRACTOS (A implementar por cada hijo) ---
     @abstractmethod

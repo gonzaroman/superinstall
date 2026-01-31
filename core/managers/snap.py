@@ -34,7 +34,7 @@ class SnapManager(BaseManager):
         """
         # 1. Comando como cadena (string) para que funcione con shell=True en BaseManager
         # Usamos pkexec para la elevación de privilegios
-        comando = f"pkexec snap install --dangerous {ruta_archivo}"
+        comando = f"pkexec snap install --dangerous '{ruta_archivo}'"
         
         # 2. Definimos el patrón para buscar el porcentaje (ejemplo: "Mounting snap 15%")
         patron_snap = r"(\d+)%"

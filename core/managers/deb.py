@@ -30,9 +30,10 @@ class DebManager(BaseManager):
             return nombre.capitalize(), f"{txt_tipo} • v{version} • {peso} • {txt_estado}"
             
         except Exception as e:
-            # Fallback en caso de que el archivo esté corrupto o dpkg falle
             peso_error = self.obtener_tamano_archivo(ruta_archivo)
-            return "Archivo Debian", f"Error al leer metadatos • {peso_error}"
+            txt_deb = self.lang.get("type_debian", "Debian Package")
+            txt_err = self.lang.get("error_metadata", "Error reading metadata")
+            return txt_deb, f"{txt_err} • {peso_error}"
 
     def buscar_icono(self, ruta_deb):
         """Extrae el icono del paquete .deb."""
@@ -66,7 +67,7 @@ class DebManager(BaseManager):
         """
         # 1. Usamos apt-get en lugar de dpkg porque apt-get descarga dependencias faltantes.
         # El parámetro -o Dpkg::Progress-Fancy=1 fuerza a APT a mostrar la barra de progreso.
-        comando = f"pkexec apt-get install -y -o Dpkg::Progress-Fancy=1 {ruta_archivo}"
+        comando = f"pkexec apt-get install -y -o Dpkg::Progress-Fancy=1 '{ruta_archivo}'"
         
         # 2. El patrón para APT es un poco distinto. 
         # Suele mostrar: "Progress: [ 25%]"

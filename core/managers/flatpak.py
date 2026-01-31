@@ -65,7 +65,7 @@ class FlatpakManager(BaseManager):
 
     def instalar(self, ruta_archivo):
         """Instala el paquete capturando el progreso real."""
-        comando = f"pkexec flatpak install --system -y --noninteractive --or-update {ruta_archivo}"
+        comando = f"pkexec flatpak install --system -y --noninteractive --or-update '{ruta_archivo}'"
         patron_progreso = r"(\d+)%"
         
         exito = self.ejecutar_comando_con_progreso(comando, patron_progreso)

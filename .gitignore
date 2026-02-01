@@ -1,22 +1,38 @@
-# Entornos virtuales (el más importante)
+# ==========================================
+# Entornos virtuales
+# ==========================================
 .venv/
 venv/
 env/
 
+# ==========================================
 # Caché de Python
+# ==========================================
 **/__pycache__/
 *.py[cod]
 *$py.class
 
-# Archivos de configuración de VS Code o IDEs
+# ==========================================
+# EMPAQUETADO LINUX (Añade esto)
+# ==========================================
+# No subimos la carpeta donde construimos el .deb
+superinstall-pkg/
+
+# No subimos el archivo instalador final al código
+# (El .deb se sube a GitHub Releases, no al repo)
+*.deb
+
+# ==========================================
+# Configuración de IDEs
+# ==========================================
 .vscode/
 .idea/
 .project
 .settings/
 
-# Archivos temporales del sistema
+# ==========================================
+# Archivos temporales y Logs
+# ==========================================
 .DS_Store
 Thumbs.db
-
-# Temporales de tu aplicación (si usas /tmp locales)
 *.log

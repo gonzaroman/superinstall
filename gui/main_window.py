@@ -1,6 +1,9 @@
 import os
 import threading
 import subprocess
+
+import sys
+
 from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QWidget, QLabel, 
                              QPushButton, QFileDialog, QHBoxLayout, 
                              QMessageBox, QProgressBar, QScrollArea, QLineEdit, 
@@ -16,6 +19,21 @@ from core.managers.appimage import AppImageManager
 from core.managers.flatpak import FlatpakManager
 from core.managers.snap import SnapManager
 from utils.helpers import cargar_traducciones
+
+# Detectamos la ruta base absoluta del archivo actual
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def get_asset_path(relative_path):
+    """
+    Convierte una ruta relativa (ej: 'assets/styles/style.qss') 
+    en una absoluta que funciona en Linux instalado.
+    """
+    # Si este archivo está en 'gui/', subimos un nivel para ir a la raíz
+    # SI TU ARCHIVO ESTÁ EN LA RAÍZ, BORRA EL '..' DE ABAJO
+    project_root = os.path.join(BASE_DIR, "..") 
+    
+    path = os.path.join(project_root, relative_path)
+    return os.path.normpath(path) # Limpia la ruta
 
 class InstaladorPro(QMainWindow):
     def __init__(self):
@@ -121,7 +139,7 @@ class InstaladorPro(QMainWindow):
         self.btn_nav_instalar.setObjectName("btn_nav")
         self.btn_nav_instalar.setProperty("active", True)
         self.btn_nav_instalar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.btn_nav_instalar.setIcon(QIcon("assets/icons/nav_install.png"))
+        self.btn_nav_instalar.setIcon(QIcon(get_asset_path("assets/icons/nav_install.png")))
         self.btn_nav_instalar.setIconSize(QSize(100, 100))
         self.btn_nav_instalar.setFixedSize(190, 170)
         self.btn_nav_instalar.setCursor(Qt.PointingHandCursor)
@@ -131,7 +149,7 @@ class InstaladorPro(QMainWindow):
         self.btn_nav_gestionar.setText(self.lang.get('btn_manage_nav', 'Gestionar'))
         self.btn_nav_gestionar.setObjectName("btn_nav")
         self.btn_nav_gestionar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.btn_nav_gestionar.setIcon(QIcon("assets/icons/nav_manage.png"))
+        self.btn_nav_gestionar.setIcon(QIcon(get_asset_path("assets/icons/nav_manage.png")))
         self.btn_nav_gestionar.setIconSize(QSize(100, 100)) 
         self.btn_nav_gestionar.setFixedSize(190, 170)
         self.btn_nav_gestionar.setCursor(Qt.PointingHandCursor)
@@ -444,7 +462,7 @@ class InstaladorPro(QMainWindow):
     # --- UTILIDADES DE UI ---
 
     def set_main_logo(self, fallback_emoji):
-        ruta_logo = os.path.join("assets", "icons", "logo_bellota.png")
+        ruta_logo = get_asset_path("assets/icons/logo_bellota.png")
         if os.path.exists(ruta_logo):
             pix = QPixmap(ruta_logo)
             self.label_icono.setPixmap(pix.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
@@ -463,10 +481,18 @@ class InstaladorPro(QMainWindow):
         self.barra_progreso.setValue(v)
 
     def cargar_estilos(self):
-        ruta = os.path.join("assets", "styles", "style.qss")
-        if os.path.exists(ruta):
-            with open(ruta, "r") as f:
+        # --- CAMBIA ESTO ---
+        # Antes tenías algo como: path = "assets/styles/style.qss"
+        # Ahora pon esto:
+        ruta_estilo = get_asset_path("assets/styles/style.qss")
+        
+        try:
+            with open(ruta_estilo, "r") as f:
                 self.setStyleSheet(f.read())
+            # Opcional: Para confirmar que carga bien
+            print(f"Estilos cargados desde: {ruta_estilo}") 
+        except FileNotFoundError:
+            print(f"ERROR: No se encontró el archivo de estilos en: {ruta_estilo}")
 
     # --- GESTOR DE APPS INSTALADAS ---
 

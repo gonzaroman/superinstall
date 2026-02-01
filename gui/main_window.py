@@ -3,9 +3,10 @@ import threading
 import subprocess
 from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QWidget, QLabel, 
                              QPushButton, QFileDialog, QHBoxLayout, 
-                             QMessageBox, QProgressBar, QScrollArea, QLineEdit, QStackedWidget, QToolButton)
-from PySide6.QtCore import Qt, QTimer, QSize
-from PySide6.QtGui import QPixmap, QIcon
+                             QMessageBox, QProgressBar, QScrollArea, QLineEdit, 
+                             QStackedWidget, QToolButton)
+from PySide6.QtCore import Qt, QTimer, QSize, QPoint
+from PySide6.QtGui import QPixmap, QIcon, QColor
 
 from utils.system_check import SystemChecker
 from utils.signals import Comunicador
@@ -20,69 +21,119 @@ class InstaladorPro(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        # 1. CARGA DE IDIOMA (Inglés por defecto si no hay JSON del sistema)
-        self.lang = cargar_traducciones()
+        # 1. CONFIGURACIÓN DE VENTANA "PREMIUM" (Sin bordes)
+        self.setWindowFlags(Qt.FramelessWindowHint) 
+        self.setAttribute(Qt.WA_TranslucentBackground)
         
+        # Variables para el movimiento de la ventana
+        self.click_pos = None 
+
+        # 2. CARGA DE IDIOMA Y DATOS
+        self.lang = cargar_traducciones()
         self.setWindowTitle(self.lang.get("window_title", "SuperInstall v3.0"))
         self.resize(950, 650)
         self.setMinimumSize(850, 550)
         self.setAcceptDrops(True)
         self.instalando = False
         
-        # 2. MANAGERS (Ahora les pasamos self.lang)
+        # 3. MANAGERS
         self.comunicador = Comunicador()
         self.mgr_deb = DebManager(self.comunicador, self.lang)
         self.mgr_appimage = AppImageManager(self.comunicador, self.lang)
         self.mgr_flatpak = FlatpakManager(self.comunicador, self.lang)
         self.mgr_snap = SnapManager(self.comunicador, self.lang)
         
-        # 3. SEÑALES
+        # 4. SEÑALES
         self.comunicador.icono_listo.connect(self.actualizar_icono_visual)
         self.comunicador.progreso_actualizado.connect(self.actualizar_progreso)
         self.comunicador.instalacion_completada.connect(self.mostrar_resultado)
 
-        # 4. UI Y ESTADO
+        # 5. CONSTRUCCIÓN DE LA UI
         self.setup_ui_base()
         self.cargar_estilos()
+        
+        # Estado inicial
         self.ruta_archivo = ""
         self.manager_actual = None
 
     def setup_ui_base(self):
-        """Configura la estructura principal: Sidebar + Contenido"""
+        """Estructura: [Barra Título] -> [Cuerpo (Sidebar + Contenido)]"""
         self.central_widget = QWidget()
+        self.central_widget.setObjectName("central_widget")
         self.setCentralWidget(self.central_widget)
-        self.layout_principal = QHBoxLayout(self.central_widget)
+        
+        # Layout Raíz (Vertical)
+        self.layout_raiz = QVBoxLayout(self.central_widget)
+        self.layout_raiz.setContentsMargins(0, 0, 0, 0)
+        self.layout_raiz.setSpacing(0)
+
+        # --- 1. BARRA DE TÍTULO CUSTOM ---
+        self.barra_titulo = QWidget()
+        self.barra_titulo.setObjectName("barra_titulo")
+        self.barra_titulo.setFixedHeight(40) # Un poco más alta para que sea cómoda
+        
+        ly_title = QHBoxLayout(self.barra_titulo)
+        ly_title.setContentsMargins(15, 0, 10, 0)
+        
+        self.lbl_app_icon = QLabel("📦") # Icono pequeño en la barra
+        self.lbl_app_icon.setStyleSheet("font-size: 16px; margin-right: 5px;")
+        
+        self.lbl_title_text = QLabel(f"SuperInstall {self.lang.get('window_title', 'v3.0')}")
+        self.lbl_title_text.setObjectName("titulo_ventana")
+        
+        ly_title.addWidget(self.lbl_app_icon)
+        ly_title.addWidget(self.lbl_title_text)
+        ly_title.addStretch()
+
+        # Botones de control
+        self.btn_min = QPushButton("-")
+        self.btn_min.setObjectName("btn_control")
+        self.btn_min.setFixedSize(35, 30)
+        self.btn_min.clicked.connect(self.showMinimized)
+        
+        self.btn_close = QPushButton("✕")
+        self.btn_close.setObjectName("btn_control_close")
+        self.btn_close.setFixedSize(35, 30)
+        self.btn_close.clicked.connect(self.close)
+        
+        ly_title.addWidget(self.btn_min)
+        ly_title.addWidget(self.btn_close)
+        
+        self.layout_raiz.addWidget(self.barra_titulo)
+
+        # --- 2. CONTENEDOR DEL CUERPO (Sidebar + Stack) ---
+        self.contenedor_cuerpo = QWidget()
+        self.layout_principal = QHBoxLayout(self.contenedor_cuerpo)
         self.layout_principal.setContentsMargins(0, 0, 0, 0)
         self.layout_principal.setSpacing(0)
-
-        # --- SIDEBAR ---
+        
+        # SIDEBAR
         self.sidebar = QWidget()
         self.sidebar.setObjectName("sidebar")
         self.sidebar.setFixedWidth(220)
         ly_sidebar = QVBoxLayout(self.sidebar)
-        ly_sidebar.setContentsMargins(15, 50, 15, 20)
-        ly_sidebar.setSpacing(25)
+        ly_sidebar.setContentsMargins(15, 40, 15, 20)
+        ly_sidebar.setSpacing(15)
 
-        # Botón Instalar
+        # Botones Nav
         self.btn_nav_instalar = QToolButton()
-        self.btn_nav_instalar.setText(self.lang.get('btn_install_nav', 'Install'))
+        self.btn_nav_instalar.setText(self.lang.get('btn_install_nav', 'Instalar'))
         self.btn_nav_instalar.setObjectName("btn_nav")
         self.btn_nav_instalar.setProperty("active", True)
         self.btn_nav_instalar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.btn_nav_instalar.setIcon(QIcon("assets/icons/nav_install.png"))
-        self.btn_nav_instalar.setIconSize(QSize(120, 120))
-        self.btn_nav_instalar.setFixedSize(180, 190)
+        self.btn_nav_instalar.setIconSize(QSize(100, 100))
+        self.btn_nav_instalar.setFixedSize(190, 170)
         self.btn_nav_instalar.setCursor(Qt.PointingHandCursor)
         self.btn_nav_instalar.clicked.connect(lambda: self.cambiar_vista(0))
 
-        # Botón Gestionar
         self.btn_nav_gestionar = QToolButton()
-        self.btn_nav_gestionar.setText(self.lang.get('btn_manage_nav', 'Manage'))
+        self.btn_nav_gestionar.setText(self.lang.get('btn_manage_nav', 'Gestionar'))
         self.btn_nav_gestionar.setObjectName("btn_nav")
         self.btn_nav_gestionar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.btn_nav_gestionar.setIcon(QIcon("assets/icons/nav_manage.png"))
-        self.btn_nav_gestionar.setIconSize(QSize(120, 120)) 
-        self.btn_nav_gestionar.setFixedSize(180, 190)
+        self.btn_nav_gestionar.setIconSize(QSize(100, 100)) 
+        self.btn_nav_gestionar.setFixedSize(190, 170)
         self.btn_nav_gestionar.setCursor(Qt.PointingHandCursor)
         self.btn_nav_gestionar.clicked.connect(lambda: self.cambiar_vista(1))
 
@@ -90,7 +141,7 @@ class InstaladorPro(QMainWindow):
         ly_sidebar.addWidget(self.btn_nav_gestionar, alignment=Qt.AlignCenter)
         ly_sidebar.addStretch()
 
-        # --- CONTENIDO (STACKED WIDGET) ---
+        # CONTENIDO (STACK)
         self.stack = QStackedWidget()
         self.vista_instalacion = QWidget()
         self.setup_view_instalar()
@@ -102,6 +153,36 @@ class InstaladorPro(QMainWindow):
 
         self.layout_principal.addWidget(self.sidebar)
         self.layout_principal.addWidget(self.stack)
+        
+        self.layout_raiz.addWidget(self.contenedor_cuerpo)
+
+    # --- LÓGICA DE MOVIMIENTO DE VENTANA (Compatible con Wayland y X11) ---
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            # 1. Obtenemos la posición del click relativa a la barra de título
+            # mapFromGlobal asegura que la coordenada sea correcta sin importar qué widget se pinche
+            pos_en_barra = self.barra_titulo.mapFromGlobal(event.globalPosition().toPoint())
+            
+            # 2. Verificamos si el click está dentro de los límites de la barra de título
+            if self.barra_titulo.rect().contains(pos_en_barra):
+                # 3. Iniciamos el movimiento nativo del sistema (Zorin/Ubuntu/Windows)
+                # Esto es lo más fluido y compatible que existe actualmente
+                if self.windowHandle():
+                    self.windowHandle().startSystemMove()
+                
+                # Fallback por si el sistema es muy antiguo:
+                self.click_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                event.accept()
+
+    def mouseMoveEvent(self, event):
+        # El movimiento ahora lo gestiona el sistema mediante startSystemMove, 
+        # pero dejamos el fallback por si acaso para máxima compatibilidad.
+        if self.click_pos is not None and not self.windowHandle():
+            self.move(event.globalPosition().toPoint() - self.click_pos)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        self.click_pos = None
 
     def setup_view_instalar(self):
         """Vista principal de Drag & Drop e instalación"""
@@ -157,12 +238,14 @@ class InstaladorPro(QMainWindow):
         self.btn_abrir = QPushButton(self.lang.get("btn_select", "Select File"))
         self.btn_abrir.setObjectName("btn_abrir")
         self.btn_abrir.setFixedSize(220, 48)
+        self.btn_abrir.setCursor(Qt.PointingHandCursor)
         self.btn_abrir.clicked.connect(self.seleccionar_archivo)
         layout.addWidget(self.btn_abrir, alignment=Qt.AlignCenter)
 
         self.btn_instalar = QPushButton(self.lang.get("btn_install", "Install Now"))
         self.btn_instalar.setObjectName("btn_instalar")
         self.btn_instalar.setFixedSize(220, 48)
+        self.btn_abrir.setCursor(Qt.PointingHandCursor)
         self.btn_instalar.clicked.connect(self.iniciar_instalacion)
         self.btn_instalar.hide()
         layout.addWidget(self.btn_instalar, alignment=Qt.AlignCenter)
@@ -285,11 +368,13 @@ class InstaladorPro(QMainWindow):
         if ya_existe:
             self.btn_instalar.setText(self.lang.get("btn_reinstall", "Reinstall"))
             self.btn_instalar.setStyleSheet("background-color: #f39c12; color: white;")
+            self.btn_instalar.setCursor(Qt.PointingHandCursor)
             msg_suffix = self.lang.get("already_installed", "(Already installed)")
             self.label_version.setText(f"{info_texto} {msg_suffix}")
         else:
             self.btn_instalar.setText(self.lang.get("btn_install", "Install Now"))
             self.btn_instalar.setStyleSheet("") 
+            self.btn_instalar.setCursor(Qt.PointingHandCursor)
             self.label_version.setText(info_texto)
 
         # Buscar icono en segundo plano (Solo si la arquitectura era correcta)
@@ -308,6 +393,7 @@ class InstaladorPro(QMainWindow):
         self.btn_instalar.show()
         self.btn_instalar.setText(f"{self.lang.get('btn_activate', 'Activate')} {motor.capitalize()}")
         self.btn_instalar.setStyleSheet("background-color: #27ae60; color: white; font-weight: bold;")
+        self.btn_instalar.setCursor(Qt.PointingHandCursor)
         
         try: self.btn_instalar.clicked.disconnect()
         except: pass
@@ -471,3 +557,4 @@ class InstaladorPro(QMainWindow):
         filtro = "Apps (*.deb *.AppImage *.flatpak *.flatpakref *.snap)"
         archivo, _ = QFileDialog.getOpenFileName(self, self.lang.get("btn_select", "Open"), "", filtro)
         if archivo: self.preparar_archivo(archivo)
+    

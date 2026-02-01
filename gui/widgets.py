@@ -19,13 +19,9 @@ class WidgetAppInstalada(QFrame):
         self.lbl_icono = QLabel()
         self.lbl_icono.setFixedSize(48, 48) 
         self.lbl_icono.setAlignment(Qt.AlignCenter)
+        self.lbl_icono.setObjectName("lbl_icono_app")
 
-        # --- ESTILO DE "BALDOSA" BLANCA ---
-        self.lbl_icono.setStyleSheet("""
-            background-color: #f8f9fa; /* Blanco muy suave */
-            border-radius: 10px;        /* Bordes redondeados */
-            padding: 4px;              /* Espacio para que el icono no toque los bordes */
-        """)
+        
         
         pixmap = None
         icono_str = str(icono_ref) if icono_ref else ""
@@ -87,7 +83,7 @@ class WidgetAppInstalada(QFrame):
         texto_boton = lang.get("btn_delete", "Eliminar")
         btn_eliminar = QPushButton(texto_boton)
         btn_eliminar.setObjectName("btn_eliminar_app")
-        btn_eliminar.setFixedSize(80, 32) # Tamaño fijo para que no baile
+        btn_eliminar.setFixedSize(90, 32) # Tamaño fijo para que no baile
         btn_eliminar.setCursor(Qt.PointingHandCursor)
         
         btn_eliminar.clicked.connect(lambda: callback_borrar(nombre, ruta_desktop, tipo_app))

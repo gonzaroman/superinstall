@@ -30,7 +30,7 @@ class InstaladorPro(QMainWindow):
 
         # 2. CARGA DE IDIOMA Y DATOS
         self.lang = cargar_traducciones()
-        self.setWindowTitle(self.lang.get("window_title", "SuperInstall v3.0"))
+        self.setWindowTitle(self.lang.get("window_title", "SuperInstall"))
         self.resize(950, 650)
         self.setMinimumSize(850, 550)
         self.setAcceptDrops(True)
@@ -78,7 +78,7 @@ class InstaladorPro(QMainWindow):
         self.lbl_app_icon = QLabel("📦") # Icono pequeño en la barra
         self.lbl_app_icon.setStyleSheet("font-size: 16px; margin-right: 5px;")
         
-        self.lbl_title_text = QLabel(f"SuperInstall {self.lang.get('window_title', 'v3.0')}")
+        self.lbl_title_text = QLabel(f" {self.lang.get('window_title', 'v1.0')}")
         self.lbl_title_text.setObjectName("titulo_ventana")
         
         ly_title.addWidget(self.lbl_app_icon)

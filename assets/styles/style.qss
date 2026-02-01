@@ -88,7 +88,7 @@ QWidget#sidebar {
 }
 
 QToolButton#btn_nav {
-    background-color: transparent;
+    background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid transparent;
     border-radius: 12px;
     color: #888da0;
@@ -101,6 +101,7 @@ QToolButton#btn_nav {
 QToolButton#btn_nav:hover {
     background-color: rgba(255, 255, 255, 0.05);
     color: #ffffff;
+    border: 1px solid #3498db;
 }
 
 QToolButton#btn_nav[active="true"] {
@@ -185,7 +186,7 @@ QWidget#widget_app {
     background-color: #1e2227;
     border: 1px solid #2c3e50;
     border-radius: 12px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     margin-right: 10px;
 }
 
@@ -271,5 +272,5 @@ QLabel#lbl_icono_app {
     max-width: 45px;
     min-height: 45px;
     max-height: 45px;
-    border: 1px solid #d1d5db;      /* Un borde gris muy fino para dar definición */
+    border: 1px solid #d1d5db;    
 }

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=SuperInstall
+Comment=Universal Linux Package Installer
+Comment[es]=Instalador Universal de Paquetes Linux
+Exec=superinstall
+Icon=com.github.gonzaroman.superinstall
+Terminal=false
+Categories=Utility;System;Settings;
+Keywords=package;install;installer;deb;flatpak;snap;appimage;

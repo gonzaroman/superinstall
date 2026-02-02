@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.github.gonzaroman.superinstall</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>SuperInstall</name>
+  <summary>The ultimate universal installer for Linux (.deb, AppImage, Flatpak, Snap)</summary>
+  <summary xml:lang="es">El instalador universal definitivo para Linux (.deb, AppImage, Flatpak, Snap)</summary>
+
+  <description>
+    <p>
+      SuperInstall is a modern package manager that simplifies the installation and management of various Linux formats. 
+      With a sleek Midnight-themed interface, it allows you to drag and drop files for instant installation.
+    </p>
+    <p xml:lang="es">
+      SuperInstall es un gestor de paquetes moderno que simplifica la instalación y gestión de varios formatos de Linux. 
+      Con una elegante interfaz temática Midnight, te permite arrastrar y soltar archivos para una instalación instantánea.
+    </p>
+    <ul>
+      <li>Support for .deb, AppImage, Flatpak, and Snap.</li>
+      <li>Integrated application manager to list and uninstall software.</li>
+      <li>Smart dependency and architecture checking.</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">com.github.gonzaroman.superinstall.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main installation interface</caption>
+      <caption xml:lang="es">Interfaz principal de instalación</caption>
+      <image>https://github.com/user-attachments/assets/86b53cfd-249d-4835-a2a8-348003ceab82</image>
+    </screenshot>
+    <screenshot>
+      <caption>App management and uninstaller</caption>
+      <caption xml:lang="es">Gestión de aplicaciones y desinstalador</caption>
+      <image>https://github.com/user-attachments/assets/615648b2-5c7f-4d1f-85a9-a21f682192ec</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://github.com/gonzaroman/superinstall</url>
+  <developer_name>Gonzaroman</developer_name>
+  
+  <content_rating type="oars-1.1" />
+  
+  <releases>
+    <release version="1.0" date="2024-05-20" />
+  </releases>
+</component>

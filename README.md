@@ -6,16 +6,21 @@
 
 **SuperInstall** is a powerful yet elegant all-in-one package manager designed for Debian-based distributions. Forget about terminal commands for different formats; just drag, drop, and install or uninstall.
 
----
+
+
+
+
+
 
 ## 📸 Screenshots
+<img width="2871" height="1800" alt="escritorioSuperinstall" src="https://github.com/user-attachments/assets/93a90b30-ee12-4a85-a5ad-c935fdc3b3a6" />
+#VIDEO
+<div > <video src="https://github.com/user-attachments/assets/13802edf-6b58-4d89-a6b5-b5d572f4d3b9" controls="controls"></video></div>
 
 | Install Screen | App Management - uninstall |
 | :---: | :---: |
 | <img width="600"  alt="image" src="https://github.com/user-attachments/assets/86b53cfd-249d-4835-a2a8-348003ceab82" /> | <img width="400"  alt="image" src="https://github.com/user-attachments/assets/615648b2-5c7f-4d1f-85a9-a21f682192ec" />|
 | *Midnight UI Design* | *List and Uninstall Apps* |
-<img width="970" height="673" alt="image" src="https://github.com/user-attachments/assets/86b53cfd-249d-4835-a2a8-348003ceab82" />
-<img width="970" height="673" alt="image" src="https://github.com/user-attachments/assets/615648b2-5c7f-4d1f-85a9-a21f682192ec" />
 
 ---
 

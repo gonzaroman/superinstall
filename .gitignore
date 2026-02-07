@@ -12,11 +12,6 @@ env/
 *.py[cod]
 *$py.class
 
-# ==========================================
-# EMPAQUETADO LINUX (Añade esto)
-# ==========================================
-# No subimos la carpeta donde construimos el .deb
-superinstall-pkg/
 
 # No subimos el archivo instalador final al código
 # (El .deb se sube a GitHub Releases, no al repo)

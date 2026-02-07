@@ -1,0 +1,2 @@
+#!/bin/bash
+/usr/share/superinstall/venv/bin/python3 /usr/share/superinstall/main.py "$@"

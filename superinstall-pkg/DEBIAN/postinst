@@ -1,0 +1,25 @@
+#!/bin/bash
+set -e
+
+# Asumimos que tu código fuente se copia a /usr/share/superinstall
+# (Ajusta esta ruta si tu carpeta se llama diferente en usr/share)
+APP_DIR="/usr/share/superinstall"
+VENV_DIR="$APP_DIR/venv"
+
+echo "Configurando SuperInstall..."
+
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creando entorno virtual aislado en $VENV_DIR..."
+    python3 -m venv "$VENV_DIR"
+fi
+
+echo "Instalando librerías gráficas en el entorno virtual..."
+"$VENV_DIR/bin/pip" install --upgrade pip --quiet
+"$VENV_DIR/bin/pip" install PySide6 --quiet
+
+chmod -R 755 "$VENV_DIR"
+
+update-desktop-database /usr/share/applications || true
+gtk-update-icon-cache /usr/share/icons/hicolor || true
+
+exit 0

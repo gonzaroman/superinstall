@@ -1,0 +1,9 @@
+Package: superinstall
+Version: 1.0.1
+Architecture: all
+Maintainer: gonzroman <thesuperinstall@gmail.com>
+Depends: python3, python3-venv, python3-pip, flatpak, snapd, python3-requests, pkexec
+Section: utils
+Priority: optional
+Description: El instalador universal definitivo.
+ Instala .deb, AppImage, Flatpak y Snap con arrastrar y soltar.
